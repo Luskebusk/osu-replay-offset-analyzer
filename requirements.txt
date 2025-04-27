@@ -2,3 +2,5 @@
 osrparse>=7.0.1
 watchdog>=4.0.0
 construct>=2.10.70
+PyQt6>=6.9.0
+PyQt6-sip>=13.1.0
