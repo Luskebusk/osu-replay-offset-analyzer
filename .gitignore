@@ -148,3 +148,6 @@ config.ini
 
 # Ignore log files
 *.log
+
+# Stats
+analysis_stats.csv
