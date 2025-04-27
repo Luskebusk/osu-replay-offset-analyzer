@@ -1,4 +1,5 @@
 # osu! Average Hit Offset Analyzer
+* Made mostly through AI, if there is something you have an issue with feel free to email me or open a issue.
 
 This script monitors your osu! Replays folder and automatically analyzes newly created standard mode replays to determine if you are hitting notes early or late on average.
 
