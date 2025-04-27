@@ -1,0 +1,5 @@
+osrparse>=7.0.1
+watchdog>=4.0.0
+# You will also need a library to parse.osu files.
+# If using 'python-osu-parser', you might need to install it directly from GitHub:
+# pip install git+https://github.com/Awlexus/python-osu-parser.git
