@@ -83,6 +83,7 @@ This script monitors your osu! Replays folder and automatically analyzes newly c
     * `OsuSongsFolder`: Path to your osu! `Songs` directory.
     * `OsuDbPath`: Path to your `osu!.db` file (usually directly inside your main osu! folder).
     * *Use forward slashes (`/`) or raw strings (`r'C:\path...'`) for paths, especially on Windows.*
+    **Edit `ReplayTimeOffsetMs`: - or + based on how strict you want it to be, default is -10 but if you notice it is too strict or counts them too early or too late you can change the Offset.
 4.  **Save** the `config.ini` file.
 
 ## Running the Script
