@@ -76,6 +76,7 @@ This script monitors your osu! Replays folder and automatically analyzes newly c
 
 1.  **Locate `config.ini`:** Find the `config.ini` file in the project folder. If it doesn't exist, run the script once (`python analyze_replay.py`), and it will create a default one for you before exiting.
 2.  **Edit Paths:** Open `config.ini` with a text editor.
+    * This should point to the folders below in you appdata folder usually. etc (AppData/Local/osu!/osu!.db)
 3.  **Update the paths** under the `[Paths]` section to match your osu! installation:
     * `OsuReplaysFolder`: Path to your osu! `Replays` directory.
     * `OsuSongsFolder`: Path to your osu! `Songs` directory.
