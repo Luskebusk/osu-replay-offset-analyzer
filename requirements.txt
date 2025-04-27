@@ -1,8 +1,4 @@
+# requirements.txt
 osrparse>=7.0.1
 watchdog>=4.0.0
-kaitaistruct>=0.10
-rosu-pp-py>=3.0.0
 construct>=2.10.70
-# You will also need a library to parse.osu files.
-# If using 'python-osu-parser', you might need to install it directly from GitHub:
-# pip install git+https://github.com/Awlexus/python-osu-parser.git
