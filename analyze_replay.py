@@ -20,8 +20,10 @@ try:
         QPushButton, QLabel, QStackedWidget, QTreeWidget, QTreeWidgetItem,
         QLineEdit, QHeaderView, QSizePolicy, QSpacerItem, QMessageBox
     )
-    from PyQt6.QtCore import Qt, QThread, pyqtSignal, QObject, pyqtSlot
-    from PyQt6.QtGui import QFont, QBrush, QColor, QPalette
+    # --- MODIFIED: Added QUrl, QDesktopServices ---
+    from PyQt6.QtCore import Qt, QThread, pyqtSignal, QObject, pyqtSlot, QUrl, QSize
+    # --- MODIFIED: Added QIcon, QDesktopServices ---
+    from PyQt6.QtGui import QFont, QBrush, QColor, QPalette, QIcon, QDesktopServices
 except ImportError:
     print("ERROR: Failed to import 'PyQt6'. Please install it using: pip install PyQt6")
     sys.exit(1)
@@ -82,8 +84,18 @@ DARK_STYLE = """
         background-color: #2e2e2e;
         color: #e0e0e0; /* Default text color */
         font-size: 10pt;
+        /* Attempt to use the font, fallback to Segoe UI/system default */
+        font-family: "Rounded Mplus 1c", "Segoe UI", Arial, sans-serif;
     }
     QMainWindow {
+        background-color: #2e2e2e;
+    }
+    /* Style for the sidebar */
+    #SidebarWidget {
+        background-color: #363636;
+    }
+    /* Style for the main content area */
+    #ContentWidget {
         background-color: #2e2e2e;
     }
     QPushButton {
@@ -93,6 +105,7 @@ DARK_STYLE = """
         border-radius: 4px;
         background-color: #4a4a4a;
         color: #e0e0e0;
+        font-weight: bold; /* Make button text bold */
     }
     QPushButton:hover {
         background-color: #5a5a5a;
@@ -101,12 +114,74 @@ DARK_STYLE = """
     QPushButton:pressed {
         background-color: #3a3a3a;
     }
+    /* Style for sidebar buttons */
+    #SidebarButton {
+        background-color: #363636;
+        border: none; /* Remove border */
+        text-align: center;
+        padding: 10px;
+        font-size: 14px; /* Match Figma */
+        font-weight: 800; /* Extra Bold */
+    }
+    #SidebarButton:hover {
+        background-color: #4a4a4a; /* Slightly lighter on hover */
+    }
+    #SidebarButton:pressed {
+        background-color: #2a2a2a; /* Darker on press */
+    }
+    /* Style for the selected sidebar button */
+    #SidebarButton[selected="true"] {
+         background-color: #2e2e2e; /* Match content background */
+         border-left: 3px solid #aaa; /* Add a left border indicator */
+    }
+
     QLabel {
         padding: 4px;
         font-size: 11pt;
-        color: #d0d0d0; /* Slightly lighter text for labels */
+        color: #d0d0d0;
     }
-    QLineEdit {
+    /* Style for the large stat labels */
+    #StatLabel {
+        font-size: 32px;
+        font-weight: 800; /* Extra Bold */
+        qproperty-alignment: 'AlignCenter'; /* Use qproperty for alignment */
+        padding: 15px;
+    }
+    /* Style for bottom bar labels */
+    #BottomBarLabel {
+        font-size: 12px; /* Adjusted size */
+        font-weight: 700; /* Bold */
+        padding: 5px;
+    }
+    /* Style for GitHub icon button */
+    #GitHubButton {
+        border: none;
+        background-color: transparent;
+        padding: 2px; /* Small padding */
+    }
+    #GitHubButton:hover {
+        background-color: #4a4a4a; /* Subtle hover */
+    }
+    #GitHubButton:pressed {
+        background-color: #2a2a2a;
+    }
+
+    #BottomBarInfoLabel {
+        font-size: 10pt; /* Slightly smaller for info text */
+        font-weight: normal; /* Regular weight */
+        padding: 5px;
+        color: #a0a0a0; /* Dimmer color */
+    }
+    /* Style for the map name label at the top */
+    #MapTitleLabel {
+        font-size: 20px; /* Slightly smaller than stats */
+        font-weight: 800; /* Extra Bold */
+        qproperty-alignment: 'AlignCenter';
+        padding-top: 15px;
+        padding-bottom: 20px; /* More space below map title */
+    }
+
+    QLineEdit#SearchAreaValue { /* Style specifically for the search input */
         padding: 5px;
         border: 1px solid #555;
         border-radius: 3px;
@@ -114,10 +189,10 @@ DARK_STYLE = """
         color: #e0e0e0;
         font-size: 10pt;
     }
-    QTreeWidget {
+    QTreeWidget#BoxForHistory { /* Style specifically for the history tree */
         border: 1px solid #444;
-        background-color: #3a3a3a; /* Darker background for tree */
-        alternate-background-color: #424242; /* Slightly lighter alt color */
+        background-color: #3a3a3a;
+        alternate-background-color: #424242;
         color: #e0e0e0;
     }
     QHeaderView::section {
@@ -140,38 +215,12 @@ DARK_STYLE = """
         min-height: 20px;
         border-radius: 3px;
     }
-    QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
-        border: none;
-        background: none;
-        height: 15px;
-        subcontrol-position: top;
-        subcontrol-origin: margin;
-    }
-    QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
-        background: none;
-    }
-    QScrollBar:horizontal {
-        border: 1px solid #555;
-        background: #3e3e3e;
-        height: 15px;
-        margin: 0 15px 0 15px;
-        border-radius: 3px;
-    }
-    QScrollBar::handle:horizontal {
-        background: #6a6a6a;
-        min-width: 20px;
-        border-radius: 3px;
-    }
-    QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
-        border: none;
-        background: none;
-        width: 15px;
-        subcontrol-position: right;
-        subcontrol-origin: margin;
-    }
-    QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
-        background: none;
-    }
+    QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { border: none; background: none; }
+    QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical { background: none; }
+    QScrollBar:horizontal { border: 1px solid #555; background: #3e3e3e; height: 15px; margin: 0 15px 0 15px; border-radius: 3px; }
+    QScrollBar::handle:horizontal { background: #6a6a6a; min-width: 20px; border-radius: 3px; }
+    QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { border: none; background: none; }
+    QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal { background: none; }
 """
 
 # --- Logging Setup Function ---
@@ -435,53 +484,26 @@ def save_stats_to_csv(timestamp, replay_name, map_name, mods, avg_offset, ur, ma
 class AnalysisWorker(QObject):
     analysis_complete = pyqtSignal(dict)
     status_update = pyqtSignal(str)
-    error_occurred = pyqtSignal(str) # NEW: Error signal
-
-    def __init__(self, replay_path):
-        super().__init__()
-        self.replay_path = replay_path
-        self._is_running = True
-
+    error_occurred = pyqtSignal(str)
+    def __init__(self, replay_path): super().__init__(); self.replay_path = replay_path; self._is_running = True
     def run(self):
         try:
             if not self._is_running: return
-
             replay_basename = os.path.basename(self.replay_path)
             self.status_update.emit(f"Processing: {replay_basename}...")
             logger.info(f"--- Starting Analysis for {replay_basename} ---")
             analysis_timestamp = datetime.now()
-
             replay_data = parse_replay_file(self.replay_path)
-            if not replay_data:
-                logger.error("Failed to parse replay.")
-                self.status_update.emit(f"Error parsing: {replay_basename}")
-                self.error_occurred.emit(f"Failed to parse replay: {replay_basename}")
-                return
-
+            if not replay_data: logger.error("Failed to parse replay."); self.status_update.emit(f"Error parsing: {replay_basename}"); self.error_occurred.emit(f"Failed to parse replay: {replay_basename}"); return
             beatmap_hash, mods, input_actions, score = replay_data['beatmap_hash'], replay_data['mods'], replay_data['input_actions'], replay_data['score']
-
             map_path, od_from_db, sr_from_db = lookup_beatmap_in_db(beatmap_hash)
-            if not map_path:
-                logger.error(f"Could not find map path for hash {beatmap_hash}.")
-                self.status_update.emit(f"Map not found: {replay_basename}")
-                self.error_occurred.emit(f"Map not found for hash: {beatmap_hash}")
-                return
-
+            if not map_path: logger.error(f"Could not find map path for hash {beatmap_hash}."); self.status_update.emit(f"Map not found: {replay_basename}"); self.error_occurred.emit(f"Map not found for hash: {beatmap_hash}"); return
             if od_from_db is None: logger.warning(f"Could not determine OD for hash {beatmap_hash}.")
-
             map_basename = os.path.basename(map_path)
-
             beatmap_data = parse_osu_file(map_path)
-            if not beatmap_data:
-                logger.error("Failed to parse beatmap.")
-                self.status_update.emit(f"Error parsing map: {replay_basename}")
-                self.error_occurred.emit(f"Failed to parse map: {map_basename}")
-                return
-
+            if not beatmap_data: logger.error("Failed to parse beatmap."); self.status_update.emit(f"Error parsing map: {replay_basename}"); self.error_occurred.emit(f"Failed to parse map: {map_basename}"); return
             hit_offsets = correlate_inputs_and_calculate_offsets(input_actions, beatmap_data, od_from_db, mods)
-
             results = {"replay_name": replay_basename, "map_name": map_basename, "mods": str(mods), "score": score, "star_rating": sr_from_db, "avg_offset": None, "ur": None, "matched_hits": 0, "tendency": "N/A"}
-
             if hit_offsets:
                 try:
                     average_offset = statistics.mean(hit_offsets); stdev_offset = statistics.stdev(hit_offsets) if len(hit_offsets) > 1 else 0.0
@@ -499,22 +521,15 @@ class AnalysisWorker(QObject):
                     save_stats_to_csv(timestamp=analysis_timestamp, replay_name=replay_basename, map_name=map_basename, mods=mods, avg_offset=average_offset, ur=unstable_rate, matched_hits=matched_hits_count, score=score, star_rating=sr_from_db)
                 except statistics.StatisticsError as e: logger.error(f"Statistics error: {e}"); results["tendency"] = "Stat Error"
                 except Exception as e: logger.error(f"Error calculating stats: {e}"); traceback.print_exc(); results["tendency"] = "Calc Error"
-            else:
-                logger.warning("--- Analysis Results ---"); logger.warning(" Could not calculate average hit offset."); logger.warning("------------------------"); results["tendency"] = "Error/No Data"
-
-            # --- MODIFIED: Emit complete signal BEFORE status update ---
+            else: logger.warning("--- Analysis Results ---"); logger.warning(" Could not calculate average hit offset."); logger.warning("------------------------"); results["tendency"] = "Error/No Data"
             self.analysis_complete.emit(results)
             self.status_update.emit("Monitoring...")
-            # --- END MODIFIED ---
-
         except Exception as e:
             logger.error(f"Unhandled exception in AnalysisWorker: {e}")
             traceback.print_exc()
-            self.error_occurred.emit(f"Unhandled error during analysis: {e}") # Emit generic error
+            self.error_occurred.emit(f"Unhandled error during analysis: {e}")
         finally:
-            self._is_running = False # Ensure worker stops trying if error occurred
-            # Note: We don't quit the thread here, let the finished signal handle that
-
+            self._is_running = False
     def stop(self): self._is_running = False
 
 # --- Watchdog Event Handler ---
@@ -556,40 +571,135 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("osu! Hit Offset Analyzer")
         self.setGeometry(100, 100, 900, 700)
         self.analysis_thread = None; self.analysis_worker = None
-        self.replay_queue = []; self.is_analyzing = False # Initialize state variables
+        self.replay_queue = []; self.is_analyzing = False
         self.central_widget = QWidget(); self.setCentralWidget(self.central_widget)
-        self.main_layout = QVBoxLayout(self.central_widget)
-        self.main_layout.setContentsMargins(10, 10, 10, 10); self.main_layout.setSpacing(10)
-        self.button_layout = QHBoxLayout(); self.button_layout.setSpacing(10)
-        self.results_button = QPushButton("Instant Results"); self.stats_button = QPushButton("Stats History")
-        self.button_layout.addWidget(self.results_button); self.button_layout.addWidget(self.stats_button); self.main_layout.addLayout(self.button_layout)
-        self.stacked_widget = QStackedWidget(); self.main_layout.addWidget(self.stacked_widget)
-        # Results Page
-        self.results_page = QWidget(); self.results_layout = QVBoxLayout(self.results_page)
-        self.results_layout.setAlignment(Qt.AlignmentFlag.AlignTop); self.results_layout.setSpacing(5); self.stacked_widget.addWidget(self.results_page)
-        self.status_label = QLabel("Status: Monitoring..."); self.map_label = QLabel("Map: N/A"); self.mods_label = QLabel("Mods: N/A")
-        self.score_label = QLabel("Score: N/A"); self.sr_label = QLabel("SR: N/A"); self.offset_label = QLabel("Avg Offset: N/A")
-        self.ur_label = QLabel("UR: N/A"); self.tendency_label = QLabel("Tendency: N/A"); self.matched_label = QLabel("Matched Hits: N/A")
-        label_font, status_font = QFont(), QFont(); label_font.setPointSize(12); status_font.setPointSize(10); self.status_label.setFont(status_font)
-        for label in [self.map_label, self.mods_label, self.score_label, self.sr_label, self.offset_label, self.ur_label, self.tendency_label, self.matched_label]:
-            label.setFont(label_font); self.results_layout.addWidget(label)
-        self.results_layout.addWidget(self.status_label); self.results_layout.addStretch()
-        # Stats Page
-        self.stats_page = QWidget(); self.stats_layout = QVBoxLayout(self.stats_page); self.stats_layout.setSpacing(6); self.stacked_widget.addWidget(self.stats_page)
-        self.filter_input = QLineEdit(); self.filter_input.setPlaceholderText("Filter by Map Name..."); self.stats_layout.addWidget(self.filter_input)
-        self.stats_tree = QTreeWidget()
+
+        # --- Sidebar Setup ---
+        sidebar_widget = QWidget(); sidebar_widget.setObjectName("SidebarWidget"); sidebar_widget.setFixedWidth(161)
+        sidebar_layout = QVBoxLayout(sidebar_widget); sidebar_layout.setContentsMargins(0, 0, 0, 10); sidebar_layout.setSpacing(0); sidebar_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self.analyzer_button = QPushButton("Analyzer"); self.analyzer_button.setObjectName("SidebarButton"); self.analyzer_button.setFixedHeight(44); self.analyzer_button.setProperty("selected", True)
+        self.history_button = QPushButton("History"); self.history_button.setObjectName("SidebarButton"); self.history_button.setFixedHeight(44); self.history_button.setProperty("selected", False)
+        sidebar_layout.addSpacerItem(QSpacerItem(20, 24, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed))
+        sidebar_layout.addWidget(self.analyzer_button); sidebar_layout.addSpacerItem(QSpacerItem(20, 12, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)); sidebar_layout.addWidget(self.history_button)
+        sidebar_layout.addStretch()
+
+# --- MODIFIED: Add GitHub Icon ---
+        github_icon_button = QPushButton()
+        github_icon_button.setObjectName("GitHubButton")
+        github_icon_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        github_icon_button.setFlat(True)  # Make background transparent
+
+# Set button size (larger than icon to allow padding)
+        github_icon_button.setFixedSize(48, 48)
+
+        try:
+
+            if getattr(sys, 'frozen', False):
+                base_dir = sys._MEIPASS
+            else:
+                base_dir = os.path.dirname(os.path.abspath(__file__))
+
+            icon_path = os.path.join(base_dir, "resources", "github_icon.png")
+            logger.debug(f"Attempting to load icon from: {icon_path}")
+
+            if os.path.isfile(icon_path):
+                icon= QIcon(icon_path)
+                github_icon_button.setIcon(icon)
+                github_icon_button.setIconSize(QSize(48, 48))  # Set icon size
+                logger.debug("GitHub icon loaded successfully.")
+            else:
+                alt_icon_path = os.path.join(base_dir, "resources", "github_icon_alt.png")
+                if os.path.exists(alt_icon_path):
+                    icon = QIcon(alt_icon_path)
+                    github_icon_button.setIcon(icon)
+                    github_icon_button.setIconSize(QSize(32, 32))  # Set icon size
+                    logger.debug("GitHub icon loaded successfully from alternate path.")
+                else:
+                    raise FileNotFoundError(f"Icon file not found: {icon_path}")
+        
+        except Exception as e:
+            logger.error(f"Error loading GitHub icon: {e}")
+            github_icon_button.setText("GitHub")
+            github_icon_button.setStyleSheet("font-size: 10pt; font-weight: bold; border: 1px solid #555")
+
+        # Connect click event
+        github_icon_button.clicked.connect(lambda: QDesktopServices.openUrl(QUrl("https://github.com/Luskebusk/osu-replay-offset-analyzer")))
+
+        sidebar_layout.addWidget(github_icon_button, 0, Qt.AlignmentFlag.AlignCenter) # Add icon button
+        sidebar_layout.addSpacerItem(QSpacerItem(20, 5, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)) # Small spacer at bottom
+        # --- END MODIFIED ---
+
+        # --- Content Area ---
+        self.stacked_widget = QStackedWidget(); self.stacked_widget.setObjectName("ContentWidget")
+
+        # --- Page 1: Analyzer Screen ---
+        analyzer_page = QWidget()
+        self.results_layout = QVBoxLayout(analyzer_page)
+        self.results_layout.setContentsMargins(30, 10, 30, 0); self.results_layout.setSpacing(5); self.results_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self.stacked_widget.addWidget(analyzer_page)
+        # Labels
+        self.map_title_label = QLabel("N/A"); self.map_title_label.setObjectName("MapTitleLabel")
+        self.tendency_label = QLabel("Tendency: N/A"); self.tendency_label.setObjectName("StatLabel")
+        self.offset_label = QLabel("Average Hit Offset: N/A"); self.offset_label.setObjectName("StatLabel")
+        self.score_label = QLabel("Score: N/A"); self.score_label.setObjectName("StatLabel")
+        self.ur_label = QLabel("Unstable Rate: N/A"); self.ur_label.setObjectName("StatLabel")
+        self.matched_label = QLabel("Matched Hits: N/A"); self.matched_label.setObjectName("StatLabel")
+        self.sr_label = QLabel("Star Rating: N/A"); self.sr_label.setObjectName("StatLabel")
+        self.status_label = QLabel("Status: Monitoring...")
+        status_font = QFont(); status_font.setPointSize(10); self.status_label.setFont(status_font)
+        # Add widgets to layout
+        self.results_layout.addWidget(self.map_title_label)
+        self.results_layout.addWidget(self.tendency_label)
+        self.results_layout.addWidget(self.offset_label)
+        self.results_layout.addWidget(self.score_label)
+        self.results_layout.addWidget(self.ur_label)
+        self.results_layout.addWidget(self.matched_label)
+        self.results_layout.addWidget(self.sr_label)
+        self.results_layout.addStretch()
+        # Bottom Info Bar
+        bottom_bar_widget = QWidget(); bottom_bar_widget.setFixedHeight(40)
+        bottom_bar_layout = QHBoxLayout(bottom_bar_widget); bottom_bar_layout.setContentsMargins(10, 0, 10, 0)
+        self.mods_info_label = QLabel("Mods: N/A"); self.mods_info_label.setObjectName("BottomBarLabel")
+        bottom_bar_layout.addWidget(self.mods_info_label, 0, Qt.AlignmentFlag.AlignLeft)
+        bottom_bar_layout.addStretch(1)
+        info_label = QLabel("Unstable Rate = Lower is generally better/more consistent"); info_label.setObjectName("BottomBarInfoLabel"); info_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        bottom_bar_layout.addWidget(info_label, 0, Qt.AlignmentFlag.AlignCenter)
+        bottom_bar_layout.addStretch(1)
+        self.status_label.setObjectName("BottomBarLabel")
+        bottom_bar_layout.addWidget(self.status_label, 0, Qt.AlignmentFlag.AlignRight)
+        self.results_layout.addWidget(bottom_bar_widget)
+
+        # --- Page 2: History Screen ---
+        self.stats_page = QWidget()
+        self.stats_layout = QVBoxLayout(self.stats_page)
+        self.stats_layout.setSpacing(6)
+        self.stacked_widget.addWidget(self.stats_page)
+        self.filter_input = QLineEdit(); self.filter_input.setObjectName("SearchAreaValue"); self.filter_input.setPlaceholderText("Filter by Map Name..."); self.stats_layout.addWidget(self.filter_input)
+        self.stats_tree = QTreeWidget(); self.stats_tree.setObjectName("BoxForHistory")
         self.stats_tree.setColumnCount(8); self.stats_tree.setHeaderLabels(['Map / Replay File', 'Timestamp', 'Mods', 'Score', 'AvgOffsetMs', 'UR', 'MatchedHits', 'StarRating'])
         self.stats_tree.setSortingEnabled(True); self.stats_tree.header().setSortIndicator(0, Qt.SortOrder.AscendingOrder)
         self.stats_tree.header().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents); self.stats_tree.header().setStretchLastSection(False)
         self.stats_tree.header().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch); self.stats_tree.setAlternatingRowColors(True)
         self.stats_layout.addWidget(self.stats_tree)
-        # Connections
-        self.results_button.clicked.connect(lambda: self.stacked_widget.setCurrentWidget(self.results_page))
-        self.stats_button.clicked.connect(self.show_stats_page)
+
+        # --- Main Layout ---
+        main_hbox = QHBoxLayout(); main_hbox.setContentsMargins(0, 0, 0, 0); main_hbox.setSpacing(0)
+        main_hbox.addWidget(sidebar_widget); main_hbox.addWidget(self.stacked_widget)
+        self.central_widget.setLayout(main_hbox)
+
+        # --- Connections ---
+        self.analyzer_button.clicked.connect(self.show_analyzer_page)
+        self.history_button.clicked.connect(self.show_history_page)
         self.filter_input.textChanged.connect(self.filter_stats_tree)
         # self.request_analysis.connect(self.start_analysis_thread) # Connected in main
 
-    def show_stats_page(self): self.stacked_widget.setCurrentWidget(self.stats_page); self.load_stats_data()
+    def show_analyzer_page(self):
+        self.stacked_widget.setCurrentIndex(0); self.analyzer_button.setProperty("selected", True); self.history_button.setProperty("selected", False); self.update_button_styles()
+    def show_history_page(self):
+        self.stacked_widget.setCurrentIndex(1); self.analyzer_button.setProperty("selected", False); self.history_button.setProperty("selected", True); self.update_button_styles(); self.load_stats_data()
+    def update_button_styles(self):
+        self.analyzer_button.style().unpolish(self.analyzer_button); self.analyzer_button.style().polish(self.analyzer_button)
+        self.history_button.style().unpolish(self.history_button); self.history_button.style().polish(self.history_button)
     def load_stats_data(self):
         logger.info(f"Loading stats from {STATS_CSV_FILE}")
         self.stats_tree.clear(); self.stats_tree.setSortingEnabled(False)
@@ -629,21 +739,25 @@ class MainWindow(QMainWindow):
         for i in range(root.childCount()):
             item = root.child(i); map_name = item.text(0).lower(); item.setHidden(filter_text not in map_name)
 
-    # --- MODIFIED: Reset flag here ---
     @pyqtSlot(dict)
     def update_results(self, results_dict):
         logger.info("Updating GUI with analysis results.")
-        self.map_label.setText(f"Map: {results_dict.get('map_name', 'N/A')}"); self.mods_label.setText(f"Mods: {results_dict.get('mods', 'N/A')}")
+        self.map_title_label.setText(f"{results_dict.get('map_name', 'N/A')}")
+        self.tendency_label.setText(f"Tendency: {results_dict.get('tendency', 'N/A')}")
+        avg_offset = results_dict.get('avg_offset')
+        if avg_offset is not None:
+            self.offset_label.setText(f"Average Hit Offset: {avg_offset:+.2f} ms")
+        else:
+            self.offset_label.setText("Average Hit Offset: N/A")
         score = results_dict.get('score', 'N/A'); self.score_label.setText(f"Score: {score:,}" if isinstance(score, int) else "Score: N/A")
-        sr = results_dict.get('star_rating'); self.sr_label.setText(f"SR: {sr:.2f}*" if sr is not None else "SR: N/A")
-        offset = results_dict.get('avg_offset'); self.offset_label.setText(f"Avg Offset: {offset:+.2f} ms" if offset is not None else "Avg Offset: N/A")
-        ur = results_dict.get('ur'); self.ur_label.setText(f"UR: {ur:.2f}" if ur is not None else "UR: N/A")
-        self.tendency_label.setText(f"Tendency: {results_dict.get('tendency', 'N/A')}"); self.matched_label.setText(f"Matched Hits: {results_dict.get('matched_hits', 'N/A')}")
+        ur = results_dict.get('ur'); self.ur_label.setText(f"Unstable Rate: {ur:.2f}" if ur is not None else "Unstable Rate: N/A")
+        self.matched_label.setText(f"Matched Hits: {results_dict.get('matched_hits', 'N/A')}")
+        sr = results_dict.get('star_rating'); self.sr_label.setText(f"Star Rating: {sr:.2f}*" if sr is not None else "Star Rating: N/A")
+        self.mods_info_label.setText(f"Mods: {results_dict.get('mods', 'N/A')}")
 
-        # Reset flag and trigger next analysis AFTER updating GUI
         self.is_analyzing = False
         logger.debug("Analysis flag set to False in update_results.")
-        self.process_next_in_queue() # Check queue immediately
+        self.process_next_in_queue()
 
         if self.stacked_widget.currentWidget() == self.stats_page: self.load_stats_data()
 
@@ -654,72 +768,58 @@ class MainWindow(QMainWindow):
         logger.debug(f"start_analysis_thread called for: {replay_path}")
         if self.is_analyzing:
             logger.warning(f"Analysis already in progress. Queueing replay: {os.path.basename(replay_path)}")
-            if replay_path not in self.replay_queue: # Avoid duplicate queue entries
-                self.replay_queue.append(replay_path)
+            if replay_path not in self.replay_queue: self.replay_queue.append(replay_path)
             return
 
-        self.is_analyzing = True # Set flag immediately
+        self.is_analyzing = True
         logger.info(f"Starting analysis worker for: {replay_path}")
         self.analysis_worker = AnalysisWorker(replay_path); self.analysis_thread = QThread(self)
-        self.analysis_worker.moveToThread(self.analysis_thread)
-        self.analysis_worker.analysis_complete.connect(self.update_results)
-        self.analysis_worker.status_update.connect(self.update_status)
-        self.analysis_worker.error_occurred.connect(self.handle_analysis_error)
-        self.analysis_thread.started.connect(self.analysis_worker.run)
-        self.analysis_thread.finished.connect(self.on_analysis_finished)
+        self.analysis_worker.moveToThread(self.analysis_thread); self.analysis_worker.analysis_complete.connect(self.update_results)
+        self.analysis_worker.status_update.connect(self.update_status); self.analysis_worker.error_occurred.connect(self.handle_analysis_error)
+        self.analysis_thread.started.connect(self.analysis_worker.run); self.analysis_thread.finished.connect(self.on_analysis_finished)
         self.analysis_thread.start()
 
     @pyqtSlot()
     def on_analysis_finished(self):
         """Schedules thread and worker objects for deletion."""
         logger.debug("Analysis thread finished signal received.")
-        if self.analysis_worker:
-            self.analysis_worker.deleteLater()
-            logger.debug("Analysis worker scheduled for deletion.")
-        if self.analysis_thread:
-            self.analysis_thread.deleteLater()
-            logger.debug("Analysis thread scheduled for deletion.")
-        # --- REMOVED: Resetting flags here, moved to update_results/handle_error ---
-        # self.analysis_worker = None
-        # self.analysis_thread = None
-        # self.is_analyzing = False
-        # self.process_next_in_queue() # Don't process queue here, do it after update/error
+        if self.analysis_worker: self.analysis_worker.deleteLater(); logger.debug("Analysis worker scheduled for deletion.")
+        if self.analysis_thread: self.analysis_thread.deleteLater(); logger.debug("Analysis thread scheduled for deletion.")
+        self.analysis_worker = None
+        self.analysis_thread = None
 
-    # --- ADDED: Separate queue processing ---
     def process_next_in_queue(self):
         """Checks the queue and starts the next analysis if needed."""
+        logger.debug(f"Processing queue. Queue size: {len(self.replay_queue)}, Analyzing: {self.is_analyzing}")
+        if self.replay_queue and not self.is_analyzing:
+            self._process_queue_item()
+        else:
+            logger.debug(f"Queue empty or analysis still running/cleaning up.")
+
+    def _process_queue_item(self):
         if self.replay_queue and not self.is_analyzing:
             next_replay = self.replay_queue.pop(0)
             logger.info(f"Processing next replay from queue: {os.path.basename(next_replay)}")
             self.start_analysis_thread(next_replay)
-        else:
-            logger.debug(f"Queue empty or analysis still running (is_analyzing={self.is_analyzing}).")
-    # --- END ADDED ---
 
-    # --- MODIFIED: Reset flag here too ---
     @pyqtSlot(str)
     def handle_analysis_error(self, error_msg):
         """Handles errors emitted from the worker thread."""
         logger.error(f"Analysis error signal received: {error_msg}")
         self.update_status(f"Error: {error_msg}")
-        self.is_analyzing = False # Reset flag on error
+        self.is_analyzing = False
         logger.debug("Analysis flag set to False in handle_analysis_error.")
-        self.process_next_in_queue() # Check queue after error
-        # Rely on finished signal for cleanup via on_analysis_finished
-    # --- END MODIFIED ---
+        self.process_next_in_queue()
 
     def closeEvent(self, event):
         """Ensure threads are stopped cleanly on window close."""
         logger.info("Close event received. Stopping threads...")
-        self.replay_queue = [] # Clear queue on close
-        if hasattr(self, 'monitor_thread') and self.monitor_thread:
-             self.monitor_thread.stop()
-             self.monitor_thread.wait()
+        self.replay_queue = []
+        if hasattr(self, 'monitor_thread') and self.monitor_thread: self.monitor_thread.stop(); self.monitor_thread.wait()
         if self.analysis_thread and self.analysis_thread.isRunning():
             logger.info("Stopping active analysis thread...")
             if self.analysis_worker: self.analysis_worker.stop()
-            self.analysis_thread.quit()
-            self.analysis_thread.wait()
+            self.analysis_thread.quit(); self.analysis_thread.wait()
         event.accept()
 
 # --- Main Execution ---
@@ -762,10 +862,12 @@ if __name__ == "__main__":
     logger.info(f"osu!.db Path: {OSU_DB_PATH.replace(os.sep, '/')}")
 
     main_window = MainWindow()
+    # Connect signal from main window instance
+    main_window.request_analysis.connect(main_window.start_analysis_thread)
     main_window.show()
 
     monitor_thread = MonitorThread(REPLAYS_FOLDER)
-    monitor_thread.new_replay_found.connect(main_window.start_analysis_thread)
+    monitor_thread.new_replay_found.connect(main_window.start_analysis_thread) # Connect watcher signal
     main_window.monitor_thread = monitor_thread
     monitor_thread.start()
     logger.info(f"\nMonitoring for new replays in: {REPLAYS_FOLDER.replace(os.sep, '/')}")
