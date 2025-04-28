@@ -18,10 +18,10 @@ try:
     from PyQt6.QtWidgets import (
         QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
         QPushButton, QLabel, QStackedWidget, QTreeWidget, QTreeWidgetItem,
-        QLineEdit, QHeaderView, QSizePolicy, QSpacerItem
+        QLineEdit, QHeaderView, QSizePolicy, QSpacerItem, QMessageBox # Added QMessageBox
     )
     from PyQt6.QtCore import Qt, QThread, pyqtSignal, QObject
-    from PyQt6.QtGui import QFont, QBrush, QColor, QPalette # Added QPalette
+    from PyQt6.QtGui import QFont, QBrush, QColor, QPalette
 except ImportError:
     print("ERROR: Failed to import 'PyQt6'. Please install it using: pip install PyQt6")
     sys.exit(1)
@@ -42,18 +42,40 @@ try: from watchdog.observers import Observer; from watchdog.events import FileSy
 except ImportError: print("ERROR: Failed to import 'watchdog'."); sys.exit(1)
 
 # --- Configuration ---
-CONFIG_FILE = 'config.ini'
-DEBUG_LOG_FILE = 'analyzer_debug.log'
-STATS_CSV_FILE = 'analysis_stats.csv'
+APP_NAME = "OsuAnalyzer" # Define app name for folder
 
-# --- Global Variables ---
-REPLAYS_FOLDER, SONGS_FOLDER, OSU_DB_PATH = "", "", ""
+# --- Function to get user data directory ---
+def get_user_data_dir():
+    """Gets the path to the application's data directory in AppData\Local."""
+    base_path = os.getenv('LOCALAPPDATA')
+    if not base_path:
+        base_path = os.path.expanduser("~")
+        print("WARNING: LOCALAPPDATA environment variable not found. Using user home directory.") # Print early warning
+    app_data_dir = os.path.join(base_path, APP_NAME)
+    try:
+        os.makedirs(app_data_dir, exist_ok=True)
+    except OSError as e:
+        print(f"ERROR: Could not create application data directory: {app_data_dir} - Error: {e}")
+        return "." # Fallback to current directory
+    return app_data_dir
+
+# --- Define file paths using the user data directory ---
+USER_DATA_DIR = get_user_data_dir()
+CONFIG_FILE = os.path.join(USER_DATA_DIR, 'config.ini')
+DEBUG_LOG_FILE = os.path.join(USER_DATA_DIR, 'analyzer_debug.log')
+STATS_CSV_FILE = os.path.join(USER_DATA_DIR, 'analysis_stats.csv')
+
+# --- Global Variables (Set by load_config and main block) ---
+REPLAYS_FOLDER = ""
+SONGS_FOLDER = ""
+OSU_DB_PATH = ""
 OSU_DB = None
 MANUAL_REPLAY_OFFSET_MS = 0
 
 # --- Logging Setup ---
+# Basic config will be overridden/added to by load_config
 logging.basicConfig(level=logging.WARNING, format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
-logger = logging.getLogger()
+logger = logging.getLogger() # Get the root logger
 
 # --- Dark Theme Stylesheet ---
 DARK_STYLE = """
@@ -112,6 +134,7 @@ DARK_STYLE = """
         background: #3e3e3e;
         width: 15px;
         margin: 15px 0 15px 0;
+        border-radius: 3px;
     }
     QScrollBar::handle:vertical {
         background: #6a6a6a;
@@ -133,6 +156,7 @@ DARK_STYLE = """
         background: #3e3e3e;
         height: 15px;
         margin: 0 15px 0 15px;
+        border-radius: 3px;
     }
     QScrollBar::handle:horizontal {
         background: #6a6a6a;
@@ -151,68 +175,133 @@ DARK_STYLE = """
     }
 """
 
+# --- Logging Setup Function ---
+def setup_logging():
+    """Configures logging based on settings in config.ini."""
+    log_level_str = 'INFO' # Default log level
+    config = configparser.ConfigParser()
+    # Read config minimally just to get log level
+    if os.path.exists(CONFIG_FILE):
+        try:
+            config.read(CONFIG_FILE)
+            if 'Settings' in config:
+                log_level_str = config['Settings'].get('LogLevel', 'INFO').upper()
+        except configparser.Error as e:
+             print(f"Warning: Could not read LogLevel from config file ({CONFIG_FILE}): {e}") # Use print before logger is ready
+
+    log_levels = {'DEBUG': logging.DEBUG, 'INFO': logging.INFO, 'WARNING': logging.WARNING, 'ERROR': logging.ERROR}
+    log_level = log_levels.get(log_level_str, logging.INFO)
+
+    # Get root logger and set its level
+    _logger = logging.getLogger()
+    _logger.setLevel(log_level) # Set root logger level - crucial for file handler
+
+    # Clear existing handlers (important if basicConfig was called)
+    for handler in _logger.handlers[:]:
+        _logger.removeHandler(handler)
+
+    # Create formatter
+    log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+
+    # Create console handler and set its level
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_log_level = logging.INFO if log_level > logging.DEBUG else logging.DEBUG
+    console_handler.setLevel(console_log_level)
+    console_handler.setFormatter(log_formatter)
+    _logger.addHandler(console_handler)
+
+    # If DEBUG level is set, add a file handler
+    if log_level == logging.DEBUG:
+        try:
+            # Ensure directory exists before creating file handler
+            os.makedirs(os.path.dirname(DEBUG_LOG_FILE), exist_ok=True)
+            file_handler = logging.FileHandler(DEBUG_LOG_FILE, mode='w', encoding='utf-8')
+            file_handler.setLevel(logging.DEBUG) # Log everything to the file
+            file_handler.setFormatter(log_formatter)
+            _logger.addHandler(file_handler)
+            _logger.info(f"DEBUG level enabled. Logging detailed output to '{DEBUG_LOG_FILE}'")
+        except Exception as e:
+            _logger.error(f"Failed to create debug log file handler for '{DEBUG_LOG_FILE}': {e}")
+            print(f"ERROR: Failed to create debug log file: {e}") # Also print error
+
+    _logger.info(f"Logging level set to {log_level_str}")
+    return _logger # Return the configured logger instance
+
 # --- Configuration Loading ---
 def load_config():
-    """Loads and validates paths and settings from the configuration file."""
-    global MANUAL_REPLAY_OFFSET_MS
+    """
+    Loads and validates paths and settings from the configuration file.
+    Returns: tuple (created_default_config_flag)
+    """
+    global MANUAL_REPLAY_OFFSET_MS, REPLAYS_FOLDER, SONGS_FOLDER, OSU_DB_PATH
     config = configparser.ConfigParser()
     replays_path_str, songs_path_str, osu_db_path_str = None, None, None
-    manual_offset_str, log_level_str = '-10', 'INFO' # Defaults updated
+    manual_offset_str, log_level_str = '-10', 'INFO'
+    created_default_config = False # Flag to track if we created the file
 
     if not os.path.exists(CONFIG_FILE):
-        logger.warning(f"Config file not found: {CONFIG_FILE}. Creating default.")
-        print(f"'{CONFIG_FILE}' not found. Creating default. Please edit paths.")
-        config['Paths'] = {'OsuReplaysFolder': r'C:\Path\To\osu!\Replays', 'OsuSongsFolder': r'C:\Path\To\osu!\Songs', 'OsuDbPath': r'C:\Path\To\osu!\osu!.db'}
+        print(f"'{os.path.basename(CONFIG_FILE)}' not found in '{os.path.dirname(CONFIG_FILE)}'. Creating default config file.")
+        print(f"Please edit it with your actual osu! paths.")
+        config['Paths'] = {'OsuReplaysFolder': '', 'OsuSongsFolder': '', 'OsuDbPath': ''}
         config['Settings'] = { 'LogLevel': 'INFO', 'ReplayTimeOffsetMs': '-10' }
         try:
+            os.makedirs(os.path.dirname(CONFIG_FILE), exist_ok=True)
             with open(CONFIG_FILE, 'w') as cf: config.write(cf)
-            logger.info(f"Default '{CONFIG_FILE}' created.")
-        except IOError as e: logger.error(f"Could not write default config: {e}")
-        sys.exit(f"Exiting. Please edit '{CONFIG_FILE}' and restart.")
+            print(f"Default '{CONFIG_FILE}' created.")
+            created_default_config = True
+        except IOError as e:
+            print(f"ERROR: Could not write default config file: {e}")
+            sys.exit(f"Exiting. Could not create '{CONFIG_FILE}'.")
 
     try: config.read(CONFIG_FILE)
-    except configparser.Error as e: logger.error(f"Error reading config: {e}"); raise ValueError(f"Error reading config: {e}") from e
+    except configparser.Error as e:
+        print(f"ERROR: Error reading configuration file: {e}")
+        raise ValueError(f"Error reading configuration file: {e}") from e
 
-    if 'Paths' not in config: logger.error("Missing [Paths] in config.ini"); raise ValueError("Missing [Paths] in config.ini")
+    if 'Paths' not in config: print("ERROR: Missing [Paths] in config.ini"); raise ValueError("Missing [Paths] in config.ini")
     try:
-        replays_path_str = config['Paths']['OsuReplaysFolder']
-        songs_path_str = config['Paths']['OsuSongsFolder']
-        osu_db_path_str = config['Paths']['OsuDbPath']
-    except KeyError as e: logger.error(f"Missing key {e} in [Paths]."); sys.exit(f"Check config for key: {e}")
+        replays_path_str = config['Paths'].get('OsuReplaysFolder', '')
+        songs_path_str = config['Paths'].get('OsuSongsFolder', '')
+        osu_db_path_str = config['Paths'].get('OsuDbPath', '')
+        if not replays_path_str or not songs_path_str or not osu_db_path_str:
+             print(f"ERROR: One or more paths in '{CONFIG_FILE}' are empty. Please configure them.")
+             if created_default_config: sys.exit(f"Paths missing in '{CONFIG_FILE}'. Please edit.")
+    except KeyError as e: print(f"ERROR: Missing key {e} in [Paths]."); sys.exit(f"Check config for key: {e}")
 
     if 'Settings' in config:
-        log_level_str = config['Settings'].get('LogLevel', 'INFO').upper()
+        log_level_str = config['Settings'].get('LogLevel', 'INFO').upper() # Read log level again for logger setup
         manual_offset_str = config['Settings'].get('ReplayTimeOffsetMs', '-10')
-    else: logger.warning("Missing [Settings] section in config.ini. Using defaults.")
+    else: print("WARNING: Missing [Settings] section in config.ini. Using defaults.")
+
+    # Setup Logging AFTER reading config (so level is known)
+    _logger = setup_logging()
+
+    # Re-check paths after logger is ready
+    if not replays_path_str or not songs_path_str or not osu_db_path_str:
+        _logger.error(f"One or more paths in '{CONFIG_FILE}' are empty. Please configure them.")
+        if created_default_config: sys.exit(f"Paths missing in '{CONFIG_FILE}'. Please edit.")
 
     if not os.path.isdir(replays_path_str): raise NotADirectoryError(f"Replays folder not found: {replays_path_str}")
     if not os.path.isdir(songs_path_str): raise NotADirectoryError(f"Songs folder not found: {songs_path_str}")
     if not os.path.isfile(osu_db_path_str): raise FileNotFoundError(f"osu!.db not found: {osu_db_path_str}")
 
-    # Setup Logging
-    log_levels = {'DEBUG': logging.DEBUG, 'INFO': logging.INFO, 'WARNING': logging.WARNING, 'ERROR': logging.ERROR}
-    log_level = log_levels.get(log_level_str, logging.INFO)
-    logger.setLevel(log_level)
-    for handler in logger.handlers[:]: logger.removeHandler(handler)
-    log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_log_level = logging.INFO if log_level > logging.DEBUG else logging.DEBUG
-    console_handler.setLevel(console_log_level); console_handler.setFormatter(log_formatter); logger.addHandler(console_handler)
-    if log_level == logging.DEBUG:
-        try:
-            file_handler = logging.FileHandler(DEBUG_LOG_FILE, mode='w', encoding='utf-8')
-            file_handler.setLevel(logging.DEBUG); file_handler.setFormatter(log_formatter); logger.addHandler(file_handler)
-            logger.info(f"DEBUG level enabled. Logging detailed output to '{DEBUG_LOG_FILE}'")
-        except Exception as e: logger.error(f"Failed to create debug log file handler: {e}")
-    logger.info(f"Logging level set to {log_level_str}")
-
     try: MANUAL_REPLAY_OFFSET_MS = int(manual_offset_str)
-    except ValueError: logger.warning(f"Invalid ReplayTimeOffsetMs '{manual_offset_str}'. Using 0 ms."); MANUAL_REPLAY_OFFSET_MS = 0
-    logger.info(f"Manual Replay Time Offset set to: {MANUAL_REPLAY_OFFSET_MS} ms")
-    logger.info("Configuration paths validated.")
-    return replays_path_str, songs_path_str, osu_db_path_str
+    except ValueError: _logger.warning(f"Invalid ReplayTimeOffsetMs '{manual_offset_str}'. Using 0 ms."); MANUAL_REPLAY_OFFSET_MS = 0
+    _logger.info(f"Manual Replay Time Offset set to: {MANUAL_REPLAY_OFFSET_MS} ms")
+
+    # Set global variables
+    REPLAYS_FOLDER = replays_path_str
+    SONGS_FOLDER = songs_path_str
+    OSU_DB_PATH = osu_db_path_str
+
+    _logger.info("Configuration paths validated.")
+    _logger.info(f"Using configuration file: {CONFIG_FILE}")
+    print(f"INFO: Config file location: {CONFIG_FILE}") # Keep print for user
+
+    return created_default_config # Return the flag
 
 # --- Load osu!.db ---
+# (Keep load_osu_database function as is)
 def load_osu_database(db_path):
     logger.info(f"Loading osu!.db from: {db_path}...")
     start_time = time.time()
@@ -223,6 +312,7 @@ def load_osu_database(db_path):
     except Exception as e: logger.critical(f"FATAL: Failed to load/parse osu!.db: {e}"); traceback.print_exc(); sys.exit("Exiting.")
 
 # --- Beatmap Lookup ---
+# (Keep lookup_beatmap_in_db function as is)
 def lookup_beatmap_in_db(beatmap_hash):
     global OSU_DB, SONGS_FOLDER
     if OSU_DB is None: return None, None, None
@@ -257,6 +347,7 @@ def lookup_beatmap_in_db(beatmap_hash):
     except Exception as e: logger.error(f"Error looking up hash {beatmap_hash}: {e}"); traceback.print_exc(); return None, None, None
 
 # --- .osu File Parsing ---
+# (Keep parse_osu_file function as is)
 def parse_osu_file(map_path):
     logger.info(f"Parsing beatmap: {os.path.basename(map_path)} using BeatmapParser...")
     try:
@@ -269,6 +360,7 @@ def parse_osu_file(map_path):
     except Exception as e: logger.error(f"Error parsing .osu file {os.path.basename(map_path)}: {e}"); traceback.print_exc(); return None
 
 # --- Replay Parsing ---
+# (Keep parse_replay_file function as is)
 def parse_replay_file(replay_path):
     try:
         logger.info(f"Parsing replay: {os.path.basename(replay_path)}...")
@@ -283,7 +375,7 @@ def parse_replay_file(replay_path):
             logger.debug(f"  Replay Frame {idx}: time_delta={event.time_delta}, current_keys={event.keys}")
             current_time += event.time_delta
             current_press_state = event.keys & relevant_keys_mask
-            if current_press_state > 0: # Record any frame where a relevant key is down
+            if current_press_state > 0:
                 adjusted_input_time = current_time + MANUAL_REPLAY_OFFSET_MS
                 input_actions.append({'time': adjusted_input_time, 'keys': current_press_state, 'original_time': current_time})
                 logger.debug(f"    -> Input State Recorded: Frame={idx}, OrigTime={current_time}, AdjTime={adjusted_input_time}, Offset={MANUAL_REPLAY_OFFSET_MS}, KeysDown={current_press_state}")
@@ -293,6 +385,7 @@ def parse_replay_file(replay_path):
     except Exception as e: logger.error(f"Error parsing replay {os.path.basename(replay_path)}: {e}"); traceback.print_exc(); return None
 
 # --- Hit Window Calculation ---
+# (Keep get_hit_window_ms function as is)
 def get_hit_window_ms(od, window_type='50', mods=Mod.NoMod):
     base_ms = {'300': 79.5, '100': 139.5, '50': 199.5}
     ms_reduction_per_od = {'300': 6, '100': 8, '50': 10}
@@ -306,6 +399,7 @@ def get_hit_window_ms(od, window_type='50', mods=Mod.NoMod):
     return max(0, window / rate)
 
 # --- Correlation Logic ---
+# (Keep correlate_inputs_and_calculate_offsets function as is)
 def correlate_inputs_and_calculate_offsets(input_actions, beatmap_data, beatmap_od, mods):
     if not beatmap_data or beatmap_od is None or not input_actions: return []
     hit_offsets, used_input_indices = [], set()
@@ -350,7 +444,7 @@ def correlate_inputs_and_calculate_offsets(input_actions, beatmap_data, beatmap_
                 offset = matched_input_time_ms - adjusted_expected_hit_time
                 if abs(offset) <= miss_window_ms:
                     hit_offsets.append(offset); used_input_indices.add(best_match_input_index); objects_correlated += 1
-                    last_successful_input_index = best_match_input_index # Update on success
+                    last_successful_input_index = best_match_input_index
                     logger.debug(f"  --> SUCCESS: Matched HO {obj_index} with Input {best_match_input_index}. Offset: {offset:+.2f}. Last used index: {last_successful_input_index}")
                 else: logger.warning(f"  --> REJECTED MATCH HO {obj_index}: Offset {offset:+.2f} outside window.")
             else:
@@ -362,10 +456,12 @@ def correlate_inputs_and_calculate_offsets(input_actions, beatmap_data, beatmap_
     return hit_offsets
 
 # --- Function to save stats ---
+# (Keep save_stats_to_csv function as is)
 def save_stats_to_csv(timestamp, replay_name, map_name, mods, avg_offset, ur, matched_hits, score, star_rating):
     """Appends the analysis results to the stats CSV file."""
     file_exists = os.path.isfile(STATS_CSV_FILE)
     try:
+        os.makedirs(os.path.dirname(STATS_CSV_FILE), exist_ok=True)
         with open(STATS_CSV_FILE, 'a', newline='', encoding='utf-8') as csvfile:
             fieldnames = ['Timestamp', 'ReplayFile', 'MapName', 'Mods', 'AvgOffsetMs', 'UR', 'MatchedHits', 'Score', 'StarRating']
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
@@ -380,6 +476,7 @@ def save_stats_to_csv(timestamp, replay_name, map_name, mods, avg_offset, ur, ma
     except Exception as e: logger.error(f"Unexpected error saving stats: {e}"); traceback.print_exc()
 
 # --- Analysis Worker ---
+# (Keep AnalysisWorker class as is)
 class AnalysisWorker(QObject):
     analysis_complete = pyqtSignal(dict)
     status_update = pyqtSignal(str)
@@ -423,6 +520,7 @@ class AnalysisWorker(QObject):
     def stop(self): self._is_running = False
 
 # --- Watchdog Event Handler ---
+# (Keep ReplayHandler class as is)
 class ReplayHandler(FileSystemEventHandler, QObject): # Inherit QObject
     new_replay_signal = pyqtSignal(str)
     def __init__(self): FileSystemEventHandler.__init__(self); QObject.__init__(self); self.last_event_time = 0; self.debounce_period = 2.0; self.last_processed_path = None
@@ -430,7 +528,7 @@ class ReplayHandler(FileSystemEventHandler, QObject): # Inherit QObject
         current_time = time.time()
         if not event.is_directory and event.src_path.lower().endswith(".osr"):
             file_path = event.src_path; logger.debug(f"Event detected: {file_path}")
-            if file_path == self.last_processed_path and current_time - self.last_processed_time < self.debounce_period: logger.debug(f"Debouncing event: {os.path.basename(file_path)}"); return
+            if file_path == self.last_processed_path and current_time - self.last_event_time < self.debounce_period: logger.debug(f"Debouncing event: {os.path.basename(file_path)}"); return
             time.sleep(0.5)
             if os.path.exists(file_path):
                 try: s1=os.path.getsize(file_path); time.sleep(0.2); s2=os.path.getsize(file_path);
@@ -441,6 +539,7 @@ class ReplayHandler(FileSystemEventHandler, QObject): # Inherit QObject
             else: logger.warning(f"File disappeared: {file_path}")
 
 # --- Watchdog Monitor Thread ---
+# (Keep MonitorThread class as is)
 class MonitorThread(QThread):
     new_replay_found = pyqtSignal(str)
     def __init__(self, path_to_watch): super().__init__(); self.path_to_watch = path_to_watch; self.observer = Observer(); self.event_handler = ReplayHandler(); self.event_handler.new_replay_signal.connect(self.new_replay_found); self._is_running = True
@@ -453,82 +552,58 @@ class MonitorThread(QThread):
     def stop(self): logger.info("Requesting monitor thread stop..."); self._is_running = False; self.observer.stop()
 
 # --- Main GUI Window ---
+# (Keep MainWindow class mostly as is)
 class MainWindow(QMainWindow):
     request_analysis = pyqtSignal(str)
     def __init__(self):
         super().__init__()
         self.setWindowTitle("osu! Hit Offset Analyzer")
         self.setGeometry(100, 100, 900, 700) # Increased size slightly
-
-        # --- Apply Dark Theme Stylesheet ---
-        self.setStyleSheet(DARK_STYLE)
-        # --- End Apply Stylesheet ---
-
-        # --- Central Widget and Layout ---
+        # self.setStyleSheet(DARK_STYLE) # Apply dark style - Applied globally now
         self.central_widget = QWidget(); self.setCentralWidget(self.central_widget)
         self.main_layout = QVBoxLayout(self.central_widget)
-        self.main_layout.setContentsMargins(10, 10, 10, 10) # Add margins
-        self.main_layout.setSpacing(10) # Add spacing
-
-        # --- View Switching Buttons ---
-        self.button_layout = QHBoxLayout()
-        self.button_layout.setSpacing(10) # Spacing between buttons
+        self.main_layout.setContentsMargins(10, 10, 10, 10); self.main_layout.setSpacing(10)
+        self.button_layout = QHBoxLayout(); self.button_layout.setSpacing(10)
         self.results_button = QPushButton("Instant Results"); self.stats_button = QPushButton("Stats History")
-        self.button_layout.addWidget(self.results_button); self.button_layout.addWidget(self.stats_button)
-        self.main_layout.addLayout(self.button_layout)
-
-        # --- Stacked Widget for Views ---
+        self.button_layout.addWidget(self.results_button); self.button_layout.addWidget(self.stats_button); self.main_layout.addLayout(self.button_layout)
         self.stacked_widget = QStackedWidget(); self.main_layout.addWidget(self.stacked_widget)
-
-        # --- View 1: Instant Results ---
+        # Results Page
         self.results_page = QWidget(); self.results_layout = QVBoxLayout(self.results_page)
-        self.results_layout.setAlignment(Qt.AlignmentFlag.AlignTop); self.results_layout.setSpacing(5) # Reduce spacing between labels
-        self.stacked_widget.addWidget(self.results_page)
+        self.results_layout.setAlignment(Qt.AlignmentFlag.AlignTop); self.results_layout.setSpacing(5); self.stacked_widget.addWidget(self.results_page)
         self.status_label = QLabel("Status: Monitoring..."); self.map_label = QLabel("Map: N/A"); self.mods_label = QLabel("Mods: N/A")
         self.score_label = QLabel("Score: N/A"); self.sr_label = QLabel("SR: N/A"); self.offset_label = QLabel("Avg Offset: N/A")
         self.ur_label = QLabel("UR: N/A"); self.tendency_label = QLabel("Tendency: N/A"); self.matched_label = QLabel("Matched Hits: N/A")
         label_font, status_font = QFont(), QFont(); label_font.setPointSize(12); status_font.setPointSize(10); self.status_label.setFont(status_font)
-        # Set label text color explicitly if needed (stylesheet might cover it)
-        # self.status_label.setStyleSheet("color: #a0a0a0;")
         for label in [self.map_label, self.mods_label, self.score_label, self.sr_label, self.offset_label, self.ur_label, self.tendency_label, self.matched_label]:
             label.setFont(label_font); self.results_layout.addWidget(label)
         self.results_layout.addWidget(self.status_label); self.results_layout.addStretch()
-
-        # --- View 2: Stats History ---
+        # Stats Page
         self.stats_page = QWidget(); self.stats_layout = QVBoxLayout(self.stats_page); self.stats_layout.setSpacing(6); self.stacked_widget.addWidget(self.stats_page)
         self.filter_input = QLineEdit(); self.filter_input.setPlaceholderText("Filter by Map Name..."); self.stats_layout.addWidget(self.filter_input)
-        self.stats_tree = QTreeWidget() # Changed to QTreeWidget
-        self.stats_tree.setColumnCount(8) # Map/Replay, Timestamp, Mods, Score, AvgOffset, UR, Hits, SR
-        self.stats_tree.setHeaderLabels(['Map / Replay File', 'Timestamp', 'Mods', 'Score', 'AvgOffsetMs', 'UR', 'MatchedHits', 'StarRating'])
-        self.stats_tree.setSortingEnabled(True); self.stats_tree.header().setSortIndicator(0, Qt.SortOrder.AscendingOrder) # Default sort by map
+        self.stats_tree = QTreeWidget()
+        self.stats_tree.setColumnCount(8); self.stats_tree.setHeaderLabels(['Map / Replay File', 'Timestamp', 'Mods', 'Score', 'AvgOffsetMs', 'UR', 'MatchedHits', 'StarRating'])
+        self.stats_tree.setSortingEnabled(True); self.stats_tree.header().setSortIndicator(0, Qt.SortOrder.AscendingOrder)
         self.stats_tree.header().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents); self.stats_tree.header().setStretchLastSection(False)
-        self.stats_tree.header().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch) # Stretch first column
-        self.stats_tree.setAlternatingRowColors(True) # Enable built-in alternating colors
+        self.stats_tree.header().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch); self.stats_tree.setAlternatingRowColors(True)
         self.stats_layout.addWidget(self.stats_tree)
-
-        # --- Connections ---
+        # Connections
         self.results_button.clicked.connect(lambda: self.stacked_widget.setCurrentWidget(self.results_page))
         self.stats_button.clicked.connect(self.show_stats_page)
-        self.filter_input.textChanged.connect(self.filter_stats_tree) # Changed filter function
+        self.filter_input.textChanged.connect(self.filter_stats_tree)
         self.analysis_thread = None; self.analysis_worker = None
         self.request_analysis.connect(self.start_analysis_thread)
 
     def show_stats_page(self): self.stacked_widget.setCurrentWidget(self.stats_page); self.load_stats_data()
-
     def load_stats_data(self):
-        """Loads data from CSV and populates the QTreeWidget, grouping by MapName."""
         logger.info(f"Loading stats from {STATS_CSV_FILE}")
         self.stats_tree.clear(); self.stats_tree.setSortingEnabled(False)
         grouped_stats = defaultdict(list)
         try:
             if not os.path.exists(STATS_CSV_FILE): logger.warning(f"Stats file '{STATS_CSV_FILE}' not found."); return
             with open(STATS_CSV_FILE, 'r', newline='', encoding='utf-8') as csvfile:
-                reader = csv.DictReader(csvfile)
-                for row in reader: grouped_stats[row.get('MapName', 'Unknown Map')].append(row)
-
+                reader = csv.DictReader(csvfile); rows = list(reader)
+                for row in rows: grouped_stats[row.get('MapName', 'Unknown Map')].append(row)
             bold_font = QFont(); bold_font.setBold(True)
-            # highlight_brush = QBrush(QColor("#555530")) # Darker yellow highlight for dark theme
-
             tree_items = []
             for map_name, plays in grouped_stats.items():
                 high_score = 0; best_play_timestamp = None
@@ -536,110 +611,97 @@ class MainWindow(QMainWindow):
                     valid_plays = [(int(p.get('Score', 0)), p.get('Timestamp')) for p in plays if p.get('Score', '').isdigit()]
                     if valid_plays: high_score, best_play_timestamp = max(valid_plays, key=lambda item: item[0])
                 except ValueError: pass
-
-                map_item = QTreeWidgetItem()
-                map_item.setText(0, map_name)
-                map_item.setText(1, f"({len(plays)} plays)") # Play count in Timestamp column for top level
-
+                map_item = QTreeWidgetItem(); map_item.setText(0, map_name); map_item.setText(1, f"({len(plays)} plays)")
                 for play_data in plays:
                     child_item = QTreeWidgetItem()
-                    # Set data for each column (offset by 1 because map name is col 0)
-                    child_item.setText(1, play_data.get('Timestamp', '')) # Timestamp
-                    child_item.setText(2, play_data.get('Mods', ''))      # Mods
-                    score_str = play_data.get('Score', '')
-                    child_item.setText(3, f"{int(score_str):,}" if score_str.isdigit() else score_str) # Score
-                    child_item.setText(4, play_data.get('AvgOffsetMs', '')) # AvgOffset
-                    child_item.setText(5, play_data.get('UR', ''))          # UR
-                    child_item.setText(6, play_data.get('MatchedHits', '')) # Hits
-                    child_item.setText(7, play_data.get('StarRating', ''))  # SR
-
-                    # Highlight high score row
+                    child_item.setText(1, play_data.get('Timestamp', '')); child_item.setText(2, play_data.get('Mods', ''))
+                    score_str = play_data.get('Score', ''); child_item.setText(3, f"{int(score_str):,}" if score_str.isdigit() else score_str)
+                    child_item.setText(4, play_data.get('AvgOffsetMs', '')); child_item.setText(5, play_data.get('UR', ''))
+                    child_item.setText(6, play_data.get('MatchedHits', '')); child_item.setText(7, play_data.get('StarRating', ''))
                     try:
                         if int(score_str) == high_score and play_data.get('Timestamp') == best_play_timestamp:
-                             for col in range(1, self.stats_tree.columnCount()): # Skip first column
-                                child_item.setFont(col, bold_font)
-                                # child_item.setBackground(col, highlight_brush) # Optional background highlight
+                             for col in range(1, self.stats_tree.columnCount()): child_item.setFont(col, bold_font)
                     except ValueError: pass
                     map_item.addChild(child_item)
                 tree_items.append(map_item)
-
-            self.stats_tree.addTopLevelItems(tree_items)
-            logger.info(f"Loaded {len(grouped_stats)} map groups into tree.")
-
+            self.stats_tree.addTopLevelItems(tree_items); logger.info(f"Loaded {len(grouped_stats)} map groups into tree.")
         except Exception as e: logger.error(f"Error loading stats data: {e}"); traceback.print_exc()
         finally: self.stats_tree.setSortingEnabled(True)
-
     def filter_stats_tree(self):
-        """Hides top-level items that don't match the filter text."""
         filter_text = self.filter_input.text().lower()
         root = self.stats_tree.invisibleRootItem()
         for i in range(root.childCount()):
-            item = root.child(i)
-            map_name = item.text(0).lower() # Map name is in column 0
-            item.setHidden(filter_text not in map_name)
-
+            item = root.child(i); map_name = item.text(0).lower(); item.setHidden(filter_text not in map_name)
     def update_results(self, results_dict):
         logger.info("Updating GUI with analysis results.")
-        self.map_label.setText(f"Map: {results_dict.get('map_name', 'N/A')}")
-        self.mods_label.setText(f"Mods: {results_dict.get('mods', 'N/A')}")
-        score = results_dict.get('score', 'N/A')
-        self.score_label.setText(f"Score: {score:,}" if isinstance(score, int) else "Score: N/A")
-        sr = results_dict.get('star_rating')
-        self.sr_label.setText(f"SR: {sr:.2f}*" if sr is not None else "SR: N/A")
-        offset = results_dict.get('avg_offset')
-        self.offset_label.setText(f"Avg Offset: {offset:+.2f} ms" if offset is not None else "Avg Offset: N/A")
-        ur = results_dict.get('ur')
-        self.ur_label.setText(f"UR: {ur:.2f}" if ur is not None else "UR: N/A")
-        self.tendency_label.setText(f"Tendency: {results_dict.get('tendency', 'N/A')}")
-        self.matched_label.setText(f"Matched Hits: {results_dict.get('matched_hits', 'N/A')}")
-        if self.stacked_widget.currentWidget() == self.stats_page: self.load_stats_data() # Refresh stats if visible
-
+        self.map_label.setText(f"Map: {results_dict.get('map_name', 'N/A')}"); self.mods_label.setText(f"Mods: {results_dict.get('mods', 'N/A')}")
+        score = results_dict.get('score', 'N/A'); self.score_label.setText(f"Score: {score:,}" if isinstance(score, int) else "Score: N/A")
+        sr = results_dict.get('star_rating'); self.sr_label.setText(f"SR: {sr:.2f}*" if sr is not None else "SR: N/A")
+        offset = results_dict.get('avg_offset'); self.offset_label.setText(f"Avg Offset: {offset:+.2f} ms" if offset is not None else "Avg Offset: N/A")
+        ur = results_dict.get('ur'); self.ur_label.setText(f"UR: {ur:.2f}" if ur is not None else "UR: N/A")
+        self.tendency_label.setText(f"Tendency: {results_dict.get('tendency', 'N/A')}"); self.matched_label.setText(f"Matched Hits: {results_dict.get('matched_hits', 'N/A')}")
+        if self.stacked_widget.currentWidget() == self.stats_page: self.load_stats_data()
     def update_status(self, status_text): self.status_label.setText(f"Status: {status_text}")
-
     def start_analysis_thread(self, replay_path):
         if self.analysis_thread and self.analysis_thread.isRunning(): logger.warning("Analysis already in progress."); return
         logger.info(f"Creating analysis worker for: {replay_path}")
         self.analysis_worker = AnalysisWorker(replay_path); self.analysis_thread = QThread()
-        self.analysis_worker.moveToThread(self.analysis_thread)
-        self.analysis_worker.analysis_complete.connect(self.update_results)
-        self.analysis_worker.status_update.connect(self.update_status)
-        self.analysis_thread.started.connect(self.analysis_worker.run)
-        self.analysis_worker.analysis_complete.connect(self.analysis_thread.quit)
-        self.analysis_thread.finished.connect(self.analysis_worker.deleteLater); self.analysis_thread.finished.connect(self.analysis_thread.deleteLater)
+        self.analysis_worker.moveToThread(self.analysis_thread); self.analysis_worker.analysis_complete.connect(self.update_results)
+        self.analysis_worker.status_update.connect(self.update_status); self.analysis_thread.started.connect(self.analysis_worker.run)
+        self.analysis_worker.analysis_complete.connect(self.analysis_thread.quit); self.analysis_thread.finished.connect(self.analysis_worker.deleteLater); self.analysis_thread.finished.connect(self.analysis_thread.deleteLater)
         self.analysis_thread.start()
-
     def closeEvent(self, event):
-        """Ensure threads are stopped cleanly on window close."""
         logger.info("Close event received. Stopping threads...")
-        if hasattr(self, 'monitor_thread') and self.monitor_thread:
-             self.monitor_thread.stop()
-             self.monitor_thread.wait() # Wait for it to finish
+        if hasattr(self, 'monitor_thread') and self.monitor_thread: self.monitor_thread.stop(); self.monitor_thread.wait()
         if self.analysis_thread and self.analysis_thread.isRunning():
             logger.info("Stopping active analysis thread...")
-            # --- MODIFIED: Check if worker exists before calling stop ---
-            if self.analysis_worker:
-                self.analysis_worker.stop() # Signal worker to stop if possible
-            # --- END MODIFIED ---
-            self.analysis_thread.quit()
-            self.analysis_thread.wait()
-        event.accept() # Accept the close event
+            if self.analysis_worker: self.analysis_worker.stop()
+            self.analysis_thread.quit(); self.analysis_thread.wait()
+        event.accept()
 
-# --- Main Execution ---
+# --- Main Execution (MODIFIED for early logging and popup) ---
 if __name__ == "__main__":
-    app = QApplication(sys.argv)
-
-    # --- Apply Dark Theme ---
-    app.setStyleSheet(DARK_STYLE)
-    # --- End Apply Dark Theme ---
-
-    logger.info("Starting osu! Average Hit Offset Analyzer"); logger.info("==========================================")
+    # --- Setup logging and config FIRST ---
+    config_created = False
     try:
-        REPLAYS_FOLDER, SONGS_FOLDER, OSU_DB_PATH = load_config()
+        logger = setup_logging() # Configure logger early
+        logger.info("Starting osu! Average Hit Offset Analyzer"); logger.info("==========================================")
+        config_created = load_config() # Load config, returns True if default was created
         OSU_DB = load_osu_database(OSU_DB_PATH)
     except (NotADirectoryError, FileNotFoundError, configparser.Error, ValueError, ImportError, Exception) as e:
+        # Log critical error to file if possible, and print to console
         logger.critical(f"Initialization failed: {e}"); traceback.print_exc()
         if isinstance(e, ImportError): print("\n--- Import Error ---\nPlease ensure required libraries and script dependencies are installed/accessible.\n--------------------\n")
+        # Try showing a simple message box if QApplication can be imported
+        try:
+            app_temp = QApplication.instance() # Check if already exists
+            if app_temp is None: app_temp = QApplication(sys.argv) # Create temporary app if needed
+            error_box = QMessageBox()
+            error_box.setIcon(QMessageBox.Icon.Critical)
+            error_box.setWindowTitle("Initialization Error")
+            error_box.setText(f"Failed to start Analyzer:\n{e}\n\nCheck logs for details (in {USER_DATA_DIR if USER_DATA_DIR != '.' else 'current directory'}).")
+            error_box.exec()
+        except Exception as e_gui:
+            print(f"Could not display GUI error message: {e_gui}") # Fallback print
         sys.exit(1)
+
+    # --- Initialize QApplication AFTER potential config creation ---
+    app = QApplication(sys.argv)
+    app.setStyleSheet(DARK_STYLE) # Apply Dark Theme
+
+    # --- Show config creation popup if needed ---
+    if config_created:
+        msg_box = QMessageBox()
+        msg_box.setIcon(QMessageBox.Icon.Information)
+        msg_box.setWindowTitle("Configuration File Created")
+        msg_box.setText(f"A default configuration file has been created.\n\nPlease edit it with your osu! paths:\n\n{CONFIG_FILE}")
+        msg_box.setStandardButtons(QMessageBox.StandardButton.Ok)
+        msg_box.exec()
+        # Optionally exit after showing the message if paths were initially empty
+        if not REPLAYS_FOLDER or not SONGS_FOLDER or not OSU_DB_PATH:
+             logger.warning("Exiting after creating default config as paths are empty.")
+             sys.exit(0) # Clean exit
+    # --- End config creation popup ---
 
     logger.info(f"Replays Folder: {REPLAYS_FOLDER.replace(os.sep, '/')}")
     logger.info(f"Songs Folder: {SONGS_FOLDER.replace(os.sep, '/')}")
@@ -656,3 +718,4 @@ if __name__ == "__main__":
     print("GUI Started. Close the window or press Ctrl+C in terminal to stop.")
 
     sys.exit(app.exec())
+

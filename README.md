@@ -1,127 +1,82 @@
-# osu! Average Hit Offset Analyzer
-* Made mostly through AI, if there is something you have an issue with feel free to email me or open a issue.
+# osu! Hit Offset Analyzer
 
-This script monitors your osu! Replays folder and automatically analyzes newly created standard mode replays to determine if you are hitting notes early or late on average.
+*Made mostly through AI, If you have any issues, feel free to open a Issue or send me a mail to my email on my profile*
+
+This application monitors your osu! Replays folder and automatically analyzes newly created standard mode replays. It provides insights into your average hit timing (early/late), Unstable Rate (UR), and saves your play stats locally.
 
 ## Features
 
 * **Automatic Analysis:** Runs in the background and processes replays as soon as they are saved.
-* **Fast Beatmap Lookup:** Uses your local `osu!.db` file for quick beatmap identification.
-* **Average Offset Calculation:** Calculates the average timing error (in milliseconds) across all successfully hit circles and slider starts in the replay.
-* **Tendency Indication:** Tells you if you were generally hitting EARLY, LATE, or ON TIME for that play.
-* **Unstable Rate (UR):** Also calculates and displays the UR based on the hit offsets.
+* **GUI Interface:** Displays results and stats in a user-friendly window.
+* **Instant Results:** Shows key metrics immediately after a play is analyzed.
+* **Stats History:** Saves results to a local CSV file (`analysis_stats.csv`).
+* **Grouped Stats View:** Displays historical plays grouped by map, highlighting your high score for each map.
+* **Filtering & Sorting:** Allows filtering stats by map name and sorting by various columns.
+* **Average Offset Calculation:** Calculates the average timing error (in milliseconds) across hit circles and slider starts.
+* **Tendency Indication:** Tells you if you were generally hitting EARLY, LATE, or ON TIME.
+* **Unstable Rate (UR):** Calculates and displays the UR based on the hit offsets.
+* **Configurable Offset:** Allows manual adjustment of replay timing via `config.ini` for calibration.
 
-## Prerequisites
+## Installation (Windows Installer)
 
-* Python 3.7 or newer ([https://www.python.org/](https://www.python.org/))
-* `pip` (Python package installer, usually included with Python)
-* Git (for cloning, optional if downloading manually)
-
-## Setup Instructions
-
-1.  **Get the Code:**
-    * **Option A (Git):** Open a terminal or command prompt and run:
-        ```bash
-        git clone <repository_url> osu-offset-analyzer
-        cd osu-offset-analyzer
-        ```
-        (Replace `<repository_url>` with the actual URL if you host this on GitHub/GitLab etc.)
-    * **Option B (Manual):** Download the project files (especially `analyze_replay.py`) as a ZIP and extract them to a folder (e.g., `osu-offset-analyzer`). Open your terminal in that folder.
-
-2.  **Create Virtual Environment (Recommended):**
-    * It's highly recommended to use a virtual environment to keep dependencies separate.
-    * Run:
-        ```bash
-        python -m venv venv
-        ```
-    * Activate the environment:
-        * **Windows (Cmd/PowerShell):** `.\venv\Scripts\activate`
-        * **Linux/macOS (Bash/Zsh):** `source venv/bin/activate`
-    * You should see `(venv)` at the beginning of your terminal prompt.
-
-3.  **Install Python Libraries:**
-    * Run:
-        ```bash
-        pip install -r requirements.txt
-        ```
-        (This installs `osrparse`, `watchdog`, and `construct`)
-
-4.  **Download Manual Parser Files:**
-    * This project requires some helper files that are not available on PyPI.
-    * **osu!.db Parser Files:**
-        * Go to [https://github.com/KirkSuD/osu_db_kaitai_struct/tree/master/osu_db_construct](https://github.com/KirkSuD/osu_db_kaitai_struct/tree/master/osu_db_construct)
-        * Download **all** `.py` files from this specific folder:
-            * `adapters.py`
-            * `osu_collection.py`
-            * `osu_db.py`
-            * `osu_scores.py`
-            * `osu_types.py`
-            * `path_util.py`
-            * `playlist.py`
-        * Place all these downloaded `.py` files directly into your project folder (where `analyze_replay.py` is).
-    * **.osu Parser Files:**
-        * Go to [https://github.com/Awlexus/python-osu-parser/tree/master](https://github.com/Awlexus/python-osu-parser/tree/master)
-        * Download the following `.py` files:
-            * `beatmapparser.py`
-            * `slidercalc.py`
-            * `curve.py`
-        * Place these three downloaded `.py` files directly into your project folder.
-
-5.  **Apply Fix to `curve.py`:**
-    * Open the `curve.py` file you just downloaded.
-    * Find all instances where `.length` is used on a list variable (check around lines 49, 50, 52).
-    * Replace `.length` with `len()` (e.g., change `array.length` to `len(array)`).
-    * Save the changes to `curve.py`.
+1.  **Download:** Go to the [Releases Page](https://github.com/Luskebusk/osu-replay-offset-analyzer/releases) on GitHub.
+2.  Download the latest `OsuAnalyzerSetup.exe` file.
+3.  **Run Installer:** Run the downloaded `OsuAnalyzerSetup.exe`. It will guide you through the installation process. Standard users may be prompted for administrator privileges if installing for all users (default). You can choose to install just for the current user if preferred.
+4.  **Shortcuts:** The installer will typically create Start Menu and optional Desktop shortcuts.
 
 ## Configuration
 
-1.  **Locate `config.ini`:** Find the `config.ini` file in the project folder. If it doesn't exist, run the script once (`python analyze_replay.py`), and it will create a default one for you before exiting.
-2.  **Edit Paths:** Open `config.ini` with a text editor.
-    * This should point to the folders below in you appdata folder usually. etc (AppData/Local/osu!/osu!.db)
-3.  **Update the paths** under the `[Paths]` section to match your osu! installation:
-    * `OsuReplaysFolder`: Path to your osu! `Replays` directory.
-    * `OsuSongsFolder`: Path to your osu! `Songs` directory.
-    * `OsuDbPath`: Path to your `osu!.db` file (usually directly inside your main osu! folder).
-    * *Use forward slashes (`/`) or raw strings (`r'C:\path...'`) for paths, especially on Windows.*
-4.  **Edit Offset** `ReplayTimeOffsetMs`: - or + based on how strict you want it to be, default is -8 but if you notice it is too strict or counts them too early or too late you can change the Offset.
+1.  **First Run:** When you run the "Osu Replay Analyzer" for the first time (e.g., from the Start Menu shortcut), it will check for a configuration file.
+2.  **Automatic Creation:** If the config file doesn't exist, the application will automatically create a default `config.ini` file in your user's local application data folder. A pop-up message will appear showing you the exact location, typically:
+    `C:\Users\<YourUsername>\AppData\Local\OsuAnalyzer\config.ini`
+3.  **Edit Paths:** Open this `config.ini` file with a text editor (like Notepad). You **must** update the paths under the `[Paths]` section to match your osu! installation:
+    * `OsuReplaysFolder`: Full path to your osu! `Replays` directory (e.g., `C:/Users/YourUsername/AppData/Local/osu!/Replays`).
+    * `OsuSongsFolder`: Full path to your osu! `Songs` directory (e.g., `C:/Users/YourUsername/AppData/Local/osu!/Songs`).
+    * `OsuDbPath`: Full path to your `osu!.db` file (e.g., `C:/Users/YourUsername/AppData/Local/osu!/osu!.db`).
+    * **Important:** Use forward slashes (`/`) or double backslashes (`\\`) for paths in the config file.
+4.  **Edit Settings (Optional):** Under the `[Settings]` section:
+    * `LogLevel`: Change to `DEBUG` for more detailed logs (written to `analyzer_debug.log` in the same folder as `config.ini`). Default is `INFO`.
+    * `ReplayTimeOffsetMs`: Adjust this value (e.g., `-10`, `-15`, `+5`) if you find the analyzer consistently reports offsets that feel slightly off compared to your perceived timing. This helps calibrate the tool to your system. Default is `-10`.
 5.  **Save** the `config.ini` file.
+6.  **Restart:** Restart the "Osu Replay Analyzer" application after saving changes to `config.ini`.
 
-## Running the Script
+## Running the Application
 
-1.  **Activate Environment:** Make sure your virtual environment is activated (you should see `(venv)` in your terminal prompt).
-2.  **Run:** Execute the script from your terminal:
-    ```bash
-    python analyze_replay.py
-    ```
-3.  **Initialization:** The script will first load your `osu!.db`. This might take 20-60 seconds depending on the size of your beatmap library. You will see a message when it's done.
-4.  **Monitoring:** Once loaded, it will print `Monitoring for new replays...` and wait in the background.
-5.  **Play osu!:** Go play an osu! standard map.
-6.  **Analysis:** Shortly after you finish the map and the replay file (.osr) is saved, the script should detect it and automatically print the analysis results to the terminal, including the Average Hit Offset and the calculated Unstable Rate (UR).
-7.  **Stop the Script:** Press `Ctrl+C` in the terminal where the script is running to stop the monitoring process.
+1.  **Launch:** Use the Start Menu or Desktop shortcut created by the installer to run "Osu Replay Analyzer".
+2.  **Initialization:** The application window will not appear until it has first load your `osu!.db`. This might take 20-60 seconds depending on the size of your beatmap library.
+3.  **Monitoring:** Once loaded, a window will show up.The status will change to "Monitoring...". The application is now waiting for new replay files.
+4.  **Play osu!:** Go play an osu! standard map.
+5.  **Analysis & Results:** Shortly after you finish the map and the replay file (.osr) is saved, the application should automatically:
+    * Update the "Instant Results" tab with the analysis for that play.
+    * Save the results to `analysis_stats.csv` (located in the same folder as `config.ini`).
+    * Update the status back to "Monitoring...".
+6.  **View Stats:** Click the "Stats History" button to view all saved plays, grouped by map. You can filter by map name and sort by columns. Your high score for each map (within the recorded plays) will be shown in bold.
+7.  **Close:** Simply close the application window when you are finished. The monitoring process will stop automatically.
 
-## Output Interpretation
+## Output Interpretation (Instant Results Tab)
 
-The script will output something like:
+* **Avg Offset:** The average timing error in milliseconds.
+    * Negative (`-`): Hitting early on average.
+    * Positive (`+`): Hitting late on average.
+* **Tendency:** A quick summary (EARLY/LATE/ON TIME) based on the average offset.
+* **UR:** Unstable Rate calculated from the standard deviation of hit offsets. Lower is generally better/more consistent.
+* **Score/SR/Mods:** Information retrieved from the replay and database.
 
-Result for YourName - Artist - Title [Diff] (Date) Osu.osr: Average Hit Offset: -5.12 ms (EARLY)
-
-* **Negative Offset (`-`):** You are hitting, on average, *early*.
-* **Positive Offset (`+`):** You are hitting, on average, *late*.
-* **Value:** The number indicates *how many milliseconds* early or late you are on average.
-* **(EARLY)/(LATE)/(ON TIME):** A quick summary based on the offset value.
-
-Use this information to potentially adjust your global offset in osu! settings or just be aware of your timing tendencies.
+Use this information to potentially adjust your global offset in osu! or track your timing consistency.
 
 ## Troubleshooting
 
-* **`ModuleNotFoundError`:** Ensure you have activated the virtual environment (`venv\Scripts\activate`) and installed requirements (`pip install -r requirements.txt`). Make sure all manually downloaded `.py` files are in the same directory as `analyze_replay.py`.
-* **`FileNotFoundError` / `NotADirectoryError` on Startup:** Double-check the paths in your `config.ini` file. Make sure they are correct and accessible. Use forward slashes (`/`).
-* **`StreamEndError` during `osu!.db` loading:** Your `osu!.db` might be corrupted or use a format slightly different from what the parser expects. Try closing osu!, deleting `osu!.db` (osu! will regenerate it, potentially losing some metadata like "Date Added"), and restarting osu! once before running the script again. *Use this as a last resort.*
-* **Warning: `entry missing folder/filename`:** This means the script found the beatmap hash in your `osu!.db`, but the database entry itself is incomplete (missing the folder or .osu file name). This often happens with deleted/corrupted beatmaps. The script will safely skip analysis for these.
-* **Script seems stuck on "Loading osu!.db":** This file can be large. Allow up to a minute or two for it to load the first time the script runs.
+* **Application doesn't start / Closes immediately:**
+    * Ensure you have correctly edited the paths in `config.ini` located in `%LOCALAPPDATA%\OsuAnalyzer`.
+    * Check the `analyzer_debug.log` file (in the same folder as `config.ini`) for error messages. You may need to set `LogLevel = DEBUG` in `config.ini` to generate this log.
+    * Your `osu!.db` might be corrupted. Try closing osu!, deleting `osu!.db` (osu! will regenerate it, potentially losing some metadata), and restarting osu! once before running the analyzer again. *Use this as a last resort.*
+* **"Map not found" / "OD not found" Status:** The beatmap hash from the replay wasn't found in your `osu!.db`. This can happen if osu! hasn't processed the map yet or if the database is out of sync. Playing the map once in osu! usually fixes this.
+* **Low "Matched Hits" Count:** The analyzer currently only processes circles and slider starts. Spinners, slider ends, and slider repeats are ignored for offset calculation.
+* **Incorrect Avg Offset:** If the offset seems consistently wrong even after checking calibration (`ReplayTimeOffsetMs`), there might be an issue with the underlying parsers or timing data. Please open an issue on GitHub.
 
 ## Dependencies & Credits
 
+* PyQt6 ([https://riverbankcomputing.com/software/pyqt/](https://riverbankcomputing.com/software/pyqt/))
 * osrparse ([https://github.com/kszlim/osu-replay-parser](https://github.com/kszlim/osu-replay-parser))
 * watchdog ([https://github.com/gorakhargosh/watchdog](https://github.com/gorakhargosh/watchdog))
 * construct ([https://github.com/construct/construct](https://github.com/construct/construct))
