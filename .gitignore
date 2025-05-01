@@ -74,5 +74,16 @@ log.txt # Specific debug log file
 config.ini # Configuration file
 analysis_stats.csv # Analysis results data file
 
+# Build/Distribution Output
+build/
+dist/
+Output/ # Inno Setup output directory
+OsuAnalyzer.spec # PyInstaller spec file
+
 # Compiled Qt Resources (if using pyrcc)
-# resources_rc.py 
+# resources_rc.py
+
+# Ignore
+
+.\Output
+installer.iss
