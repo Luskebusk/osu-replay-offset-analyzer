@@ -1,0 +1,866 @@
+/* Main application background */
+QMainWindow, QWidget {
+    background-color: #1A1B26;
+    color: #E0E0E0;
+}
+
+/* Dark mode override */
+QMainWindow[darkMode="true"], QMainWindow[darkMode="true"] QWidget {
+    background-color: #1A1B26;  /* Dark background */
+    color: #E0E0E0;
+}
+
+/* Make ALL labels have transparent backgrounds */
+QLabel {
+    background-color: transparent;
+}
+
+/* Content area */
+#content {
+    background-color: #1A1B26;
+}
+
+/* Ensure transparent backgrounds for labels and other text elements */
+#pageTitle, #settingSectionTitle, #settingLabel, #settingValueLabel, 
+#settingGroupLabel, #settingHint, #historyStatsLabel, #filterLabel,
+#statTitle, #statValue, #infoHeading, #infoContent, #songTitle,
+#statusLabel {
+    background-color: transparent;
+}
+
+/* Pill Navigation */
+#PillNav {
+    background-color: transparent;
+    padding: 16px;
+    margin-top: 8px;
+}
+
+#PillNavButton {
+    background-color: transparent;
+    border: none;
+    color: #888888;
+    padding: 8px 24px;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 20px;
+    margin: 0 4px;
+    min-width: 100px;
+}
+
+#PillNavButton:hover {
+    background-color: #353535;
+    color: #E0E0E0;
+}
+
+#PillNavButton[selected="true"] {
+    background-color: #6C8EEF;
+    color: #FFFFFF;
+}
+
+/* Top Navigation Bar */
+#TopNav {
+    background-color: #252525;
+    border-bottom: 1px solid #3A3A3A;
+    min-height: 48px;
+    padding: 0 16px;
+}
+
+#TopNavButton {
+    background-color: transparent;
+    border: none;
+    color: #888888;
+    padding: 0 24px;
+    font-size: 14px;
+    font-weight: 500;
+    min-height: 48px;
+    border-bottom: 2px solid transparent;
+}
+
+#TopNavButton:hover {
+    color: #E0E0E0;
+}
+
+#TopNavButton[selected="true"] {
+    color: #6C8EEF;
+    border-bottom: 2px solid #6C8EEF;
+}
+
+/* Sidebar */
+#sidebar {
+    background-color: #6C5DD3;
+    min-width: 64px;
+    max-width: 64px;
+}
+
+/* Navigation buttons */
+#navButton {
+    background-color: transparent;
+    border: none;
+    border-radius: 8px;
+    padding: 8px;
+    margin: 0;
+    qproperty-iconSize: 24px;
+}
+
+#navButton:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+#navButton[checked="true"] {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Page title */
+#pageTitle {
+    font-size: 32px;
+    font-weight: bold;
+    color: #FFFFFF;
+    margin-bottom: 32px;
+    background-color: transparent;
+}
+
+/* Stats container */
+#statsContainer {
+    margin: 0;
+    padding: 0;
+    background-color: transparent;
+}
+
+/* Stat cards */
+#statCard {
+    background-color: rgba(40, 40, 56, 0.5);
+    border-radius: 16px;
+    padding: 16px;
+    margin: 6px;
+}
+
+#statTitle {
+    color: #6E7191;
+    font-size: 14px;
+    margin-bottom: 8px;
+    background-color: transparent;
+}
+
+#statValue {
+    color: #FFFFFF;
+    font-size: 22px;
+    font-weight: bold;
+    background-color: transparent;
+}
+
+/* Status container */
+#statusContainer {
+    padding-top: 16px;
+    margin-top: 16px;
+    background-color: transparent;
+}
+
+/* Status bar */
+#statusLabel {
+    color: #6E7191;
+    font-size: 14px;
+    background-color: transparent;
+}
+
+/* Info page */
+#infoScroll {
+    border: none;
+    background: transparent;
+}
+
+#infoScroll QWidget {
+    background: transparent;
+}
+
+#infoSection {
+    background-color: rgba(40, 40, 56, 0.5);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 16px;
+}
+
+#infoHeading {
+    font-size: 24px;
+    font-weight: bold;
+    color: #FFFFFF;
+    margin-bottom: 16px;
+    background-color: transparent;
+}
+
+#infoContent {
+    color: #E0E0E0;
+    font-size: 16px;
+    line-height: 1.6;
+    background-color: transparent;
+}
+
+/* Scrollbar styling */
+QScrollBar:vertical {
+    border: none;
+    background: transparent;
+    width: 8px;
+    margin: 0;
+}
+
+QScrollBar::handle:vertical {
+    background: #6C5DD3;
+    border-radius: 4px;
+    min-height: 30px;
+}
+
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+    border: none;
+    background: none;
+}
+
+/* GitHub button */
+#GitHubButton {
+    background-color: transparent;
+    border: none;
+    border-radius: 8px;
+    padding: 8px;
+    margin: 0;
+    qproperty-iconSize: 24px;
+}
+
+#GitHubButton:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Song title */
+#songTitle {
+    font-size: 28px;
+    font-weight: bold;
+    color: #FFFFFF;
+    margin-bottom: 12px;
+    margin-top: 8px;
+    background-color: transparent;
+}
+
+/* Stats container */
+#statsContainer {
+    margin: 0;
+    padding: 0;
+}
+
+/* Stat labels */
+#statLabel {
+    font-size: 20px;
+    color: #FFFFFF;
+    padding: 8px 0;
+}
+
+/* Tree Widget (History) */
+QTreeWidget {
+    background-color: transparent;
+    border: none;
+    padding: 0px;
+    alternate-background-color: #2D2D3D;
+}
+
+QTreeWidget::item {
+    padding: 8px;
+    margin: 2px;
+    border-radius: 8px;
+}
+
+QTreeWidget::item:selected {
+    background-color: #6C5DD3;
+    color: #FFFFFF;
+}
+
+/* Regular buttons */
+QPushButton {
+    background-color: #6C5DD3;
+    border: none;
+    border-radius: 12px;
+    padding: 12px 24px;
+    color: #FFFFFF;
+    font-weight: 500;
+}
+
+QPushButton:hover {
+    background-color: #7D6EE4;
+}
+
+QPushButton:pressed {
+    background-color: #5B4EC2;
+}
+
+/* Input fields */
+QLineEdit, QTextEdit {
+    background-color: #FFFFFF;
+    border: 1px solid #E4E4E4;
+    border-radius: 12px;
+    padding: 12px;
+    color: #2D3142;
+}
+
+QMainWindow[darkMode="true"] QLineEdit,
+QMainWindow[darkMode="true"] QTextEdit {
+    background-color: #282838;
+    border-color: #383848;
+    color: #E0E0E0;
+}
+
+/* Labels */
+QLabel {
+    color: #E0E0E0;
+    background-color: transparent;
+}
+
+/* Headers */
+.HeaderLabel {
+    font-size: 20px;
+    font-weight: bold;
+    color: #FFFFFF;
+    padding: 16px;
+}
+
+/* Graph container */
+#graphContainer {
+    background-color: rgba(40, 40, 56, 0.3);
+    border-radius: 16px;
+    padding: 12px;
+    margin-top: 0px;
+}
+
+#chartView {
+    background-color: transparent;
+    border: none;
+    min-height: 220px;
+}
+
+/* Dropdown button */
+#dropdownButton {
+    background-color: rgba(40, 40, 56, 0.7);
+    border: none;
+    color: #FFFFFF;
+    font-size: 15px;
+    font-weight: bold;
+    padding: 6px 12px;
+    border-radius: 8px;
+    min-width: 100px;
+    text-align: center;
+}
+
+#dropdownButton:hover {
+    background-color: rgba(108, 93, 211, 0.5);
+}
+
+#dropdownButton::menu-indicator {
+    width: 12px;
+    height: 12px;
+    subcontrol-position: right center;
+    subcontrol-origin: padding;
+    right: 8px;
+    top: 1px;
+}
+
+/* Ensure the down arrow image isn't needed */
+#dropdownButton::down-arrow {
+    image: none;
+}
+
+/* Dropdown menu */
+QMenu {
+    background-color: #282838;
+    border: 1px solid #3A3A46;
+    border-radius: 8px;
+    padding: 8px;
+}
+
+QMenu::item {
+    background-color: transparent;
+    padding: 8px 16px;
+    border-radius: 4px;
+    margin: 2px;
+}
+
+QMenu::item:selected {
+    background-color: rgba(108, 93, 211, 0.5);
+}
+
+QMenu::indicator {
+    width: 16px;
+    height: 16px;
+    margin-right: 8px;
+}
+
+QMenu::indicator:checked {
+    image: url(icons/check.svg);
+}
+
+/* Metric indicators */
+#metricIndicator {
+    padding: 4px 10px;
+    border-radius: 4px;
+    margin: 0 3px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+/* History page styles */
+#historyScrollArea {
+    border: none;
+    background-color: transparent;
+}
+
+#historyScrollArea QScrollBar:vertical {
+    border: none;
+    background-color: rgba(40, 40, 56, 0.3);
+    width: 8px;
+    margin: 0;
+    border-radius: 4px;
+}
+
+#historyScrollArea QScrollBar::handle:vertical {
+    background-color: rgba(108, 93, 211, 0.7);
+    border-radius: 4px;
+    min-height: 30px;
+}
+
+#historyScrollArea QScrollBar::add-line:vertical,
+#historyScrollArea QScrollBar::sub-line:vertical {
+    height: 0;
+    background: none;
+}
+
+#historyScrollArea QScrollBar::add-page:vertical,
+#historyScrollArea QScrollBar::sub-page:vertical {
+    background: none;
+}
+
+#historyTable {
+    background-color: rgba(40, 40, 56, 0.3);
+    border: none;
+    border-radius: 16px;
+    padding: 4px;
+    gridline-color: rgba(60, 60, 76, 0.2);  /* More subtle gridlines */
+    alternate-background-color: transparent;  /* Let code handle alternating rows */
+}
+
+#historyTable::item {
+    padding: 6px 8px;
+    border: none;  /* Remove item borders */
+}
+
+#historyTable::item:selected {
+    background-color: rgba(108, 93, 211, 0.5);
+    border-radius: 4px;
+}
+
+#historyTable QHeaderView::section {
+    background-color: rgba(60, 60, 76, 0.5);  /* Lighter header */
+    color: #FFFFFF;
+    font-weight: bold;
+    padding: 8px;
+    border: none;
+    border-radius: 0;
+    text-align: center;  /* Center text */
+}
+
+#historyTable QHeaderView::section:first {
+    border-top-left-radius: 8px;
+}
+
+#historyTable QHeaderView::section:last {
+    border-top-right-radius: 8px;
+}
+
+/* Remove hover effect for header sections since they're not clickable */
+#historyTable QHeaderView::section:hover {
+    background-color: rgba(60, 60, 76, 0.5);  /* Same as non-hover */
+}
+
+#historyStatsContainer {
+    background-color: transparent;
+    padding: 8px 12px;
+    margin-top: 4px;
+}
+
+#historyStatsLabel {
+    color: #CCCCCC;
+    font-size: 13px;
+}
+
+/* Search and filter controls */
+#filterContainer {
+    background-color: transparent;
+    margin-bottom: 8px;
+}
+
+#searchInput {
+    background-color: rgba(40, 40, 56, 0.7);
+    border: 1px solid rgba(108, 93, 211, 0.5);
+    border-radius: 8px;
+    padding: 8px 16px;
+    color: #FFFFFF;
+    min-width: 200px;
+    font-size: 14px;
+}
+
+#searchInput::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+#sortCombo {
+    background-color: rgba(40, 40, 56, 0.7);
+    border: 1px solid rgba(108, 93, 211, 0.5);
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: #FFFFFF;
+    min-width: 150px;
+    font-size: 14px;
+}
+
+#sortCombo::drop-down {
+    border: none;
+    width: 20px;
+}
+
+#sortCombo::down-arrow {
+    image: url(icons/arrow-down.svg);
+    width: 12px;
+    height: 12px;
+}
+
+#historyStatsLabel {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 14px;
+    padding: 0 12px;
+}
+
+/* Settings page styles */
+#settingHint {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 12px;
+    font-style: italic;
+}
+
+#settingsScrollArea {
+    background-color: transparent;
+    border: none;
+}
+
+#settingsScrollArea QScrollBar:vertical {
+    border: none;
+    background-color: rgba(40, 40, 56, 0.3);
+    width: 8px;
+    margin: 0;
+    border-radius: 4px;
+}
+
+#settingsScrollArea QScrollBar::handle:vertical {
+    background-color: rgba(108, 93, 211, 0.7);
+    border-radius: 4px;
+    min-height: 30px;
+}
+
+#settingsScrollArea QScrollBar::add-line:vertical,
+#settingsScrollArea QScrollBar::sub-line:vertical {
+    height: 0;
+    background: none;
+}
+
+#settingsScrollArea QScrollBar::add-page:vertical,
+#settingsScrollArea QScrollBar::sub-page:vertical {
+    background: none;
+}
+
+#settingSection {
+    background-color: rgba(40, 40, 56, 0.3);
+    border-radius: 16px;
+    margin-bottom: 8px;
+}
+
+#settingSectionTitle {
+    font-size: 18px;
+    font-weight: bold;
+    color: #FFFFFF;
+    margin-bottom: 8px;
+}
+
+#settingLabel {
+    color: #CCCCCC;
+    font-size: 14px;
+}
+
+#settingValueLabel {
+    color: #FFFFFF;
+    font-size: 14px;
+    min-width: 60px;
+    text-align: right;
+}
+
+#settingGroupLabel {
+    color: #FFFFFF;
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+
+#settingInput {
+    background-color: rgba(30, 30, 46, 0.7);
+    border: 1px solid rgba(108, 93, 211, 0.5);
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: #FFFFFF;
+    font-size: 14px;
+}
+
+#settingButton {
+    background-color: rgba(60, 60, 76, 0.7);
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    color: #FFFFFF;
+    font-size: 14px;
+}
+
+#settingButton:hover {
+    background-color: rgba(80, 80, 96, 0.7);
+}
+
+#settingButton:pressed {
+    background-color: rgba(108, 93, 211, 0.7);
+}
+
+#settingCheckbox {
+    color: #CCCCCC;
+    font-size: 14px;
+    spacing: 8px;
+}
+
+#settingCheckbox::indicator {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    border: 1px solid rgba(108, 93, 211, 0.7);
+    background-color: rgba(30, 30, 46, 0.7);
+}
+
+#settingCheckbox::indicator:checked {
+    background-color: rgba(108, 93, 211, 0.8);
+    image: url(icons/check.svg);
+}
+
+#settingCheckbox::indicator:hover {
+    border-color: rgba(108, 93, 211, 1.0);
+}
+
+#settingSlider {
+    height: 24px;
+}
+
+#settingSlider::groove:horizontal {
+    border: none;
+    height: 6px;
+    background-color: rgba(60, 60, 76, 0.7);
+    border-radius: 3px;
+}
+
+#settingSlider::handle:horizontal {
+    background-color: rgba(108, 93, 211, 0.8);
+    border: none;
+    width: 16px;
+    height: 16px;
+    margin: -5px 0;
+    border-radius: 8px;
+}
+
+#settingSlider::handle:horizontal:hover {
+    background-color: rgba(108, 93, 211, 1.0);
+}
+
+#primaryButton {
+    background-color: rgba(108, 93, 211, 0.8);
+    border: none;
+    border-radius: 8px;
+    padding: 10px 20px;
+    color: #FFFFFF;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+#primaryButton:hover {
+    background-color: rgba(108, 93, 211, 1.0);
+}
+
+#primaryButton:pressed {
+    background-color: rgba(88, 73, 191, 1.0);
+}
+
+#secondaryButton {
+    background-color: rgba(60, 60, 76, 0.7);
+    border: none;
+    border-radius: 8px;
+    padding: 10px 20px;
+    color: #FFFFFF;
+    font-size: 14px;
+}
+
+#secondaryButton:hover {
+    background-color: rgba(80, 80, 96, 0.7);
+}
+
+#secondaryButton:pressed {
+    background-color: rgba(40, 40, 56, 0.7);
+}
+
+#dangerButton {
+    background-color: rgba(220, 53, 69, 0.6);
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    color: #FFFFFF;
+    font-size: 14px;
+}
+
+#dangerButton:hover {
+    background-color: rgba(220, 53, 69, 0.8);
+}
+
+#dangerButton:pressed {
+    background-color: rgba(200, 33, 49, 0.8);
+}
+
+#sliderMinLabel, #sliderMaxLabel {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 12px;
+    background-color: transparent;
+}
+
+#sliderMaxLabel {
+    color: rgba(108, 93, 211, 0.9);
+}
+
+/* Add padding to tree view items - Reduce horizontal padding */
+QTreeView::item {
+    padding: 5px 1px; /* Reduced horizontal padding from 4px to 1px */
+    margin: 0px;
+    border: none;
+    border-radius: 0px;
+}
+
+/* Style selected items in TreeView */
+QTreeView::item:selected {
+    background-color: #4a5568;
+    color: white;
+}
+
+/* Style the branch indicators (expand/collapse arrows) - REMOVED CUSTOM ICONS */
+/*
+QTreeView::branch {
+    background-color: transparent;
+}
+
+QTreeView::branch:has-children:!has-siblings:closed,
+QTreeView::branch:closed:has-children:has-siblings {
+    border-image: none;
+    image: url(icons/arrow-right.svg); 
+}
+
+QTreeView::branch:open:has-children:!has-siblings,
+QTreeView::branch:open:has-children:has-siblings {
+    border-image: none;
+    image: url(icons/arrow-down.svg); 
+}
+*/
+
+/* Header styling */
+QTreeWidget QHeaderView::section {
+    background-color: rgba(60, 60, 76, 0.5);
+    color: #FFFFFF;
+    font-weight: bold;
+    padding: 8px 2px;
+    border: none;
+    border-bottom: 1px solid #3A3A46;
+    text-align: center;
+}
+
+QTreeWidget QHeaderView::section:first {
+    border-top-left-radius: 0px;
+}
+
+QTreeWidget QHeaderView::section:last {
+    border-top-right-radius: 0px;
+    /* Attempt to force width via QSS (Removed width property) */
+    /* width: 55px; */ /* Set fixed width for the last section */
+    /* max-width: 55px; */ /* Commented out max-width */
+}
+
+/* Remove hover effect for header sections */
+QTreeWidget QHeaderView::section:hover {
+    background-color: rgba(70, 70, 86, 0.6);
+}
+
+/* ====================
+   Information Page Styles
+   ==================== */
+
+#infoPage {
+    /* Add background or specific styles for the whole info page if needed */
+}
+
+#infoScroll {
+    /* No border for the scroll area itself */
+    border: none;
+}
+
+#infoScrollContent {
+    /* Add some padding inside the scroll content if needed, */
+    /* but margins were added in the layout already */
+}
+
+#infoSection {
+    background-color: rgba(255, 255, 255, 0.04); /* Slightly lighter background for sections */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    padding: 15px; /* Add padding within the section frame */
+}
+
+#infoHeading {
+    font-size: 16px; /* Larger heading */
+    font-weight: bold;
+    color: #E0E0E0; /* Slightly brighter heading color */
+    margin-bottom: 5px; /* Space below heading before separator */
+}
+
+#infoContent {
+    font-size: 14px;
+    color: #CCCCCC; /* Standard text color */
+    line-height: 1.5; /* Improve readability */
+}
+
+/* Styling for HTML elements within infoContent */
+#infoContent ul {
+    margin-left: 20px; /* Indent bullet points */
+    margin-top: 5px;
+    margin-bottom: 5px;
+}
+
+#infoContent li {
+    margin-bottom: 8px; /* Space between bullet points */
+}
+
+#infoContent code {
+    background-color: rgba(0, 0, 0, 0.3);
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-family: Consolas, monospace;
+    font-size: 13px;
+}
+
+#infoContent b {
+    color: #FFFFFF; /* Make bold text white for emphasis */
+}
+
+/* Separator line style (used in info page and settings) */
+#separator {
+    border: none;
+    height: 1px;
+    background-color: rgba(255, 255, 255, 0.15); /* Adjust color/opacity as needed */
+    margin-top: 5px;
+    margin-bottom: 10px;
+} 

@@ -1,0 +1,78 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+# Usually these files are created by PyInstaller in a subdirectory.
+# If PyInstaller builds are created inside repository root, uncomment the following:
+#*.manifest
+#*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE directories
+.idea/
+.vscode/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+Thumbs.db
+
+# OsuAnalyzer specific files
+*.log
+log.txt # Specific debug log file
+config.ini # Configuration file
+analysis_stats.csv # Analysis results data file
+
+# Compiled Qt Resources (if using pyrcc)
+# resources_rc.py 

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Background circle -->
+  <circle cx="32" cy="32" r="30" fill="#FF66AB" />
+  
+  <!-- Inner circle (like osu! logo) -->
+  <circle cx="32" cy="32" r="26" fill="#222222" />
+  
+  <!-- Simple graph line -->
+  <path d="M15 44 L25 34 L35 44 L49 26" 
+        stroke="#FF66AB" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+  
+  <!-- Axes hint -->
+  <line x1="15" y1="24" x2="15" y2="46" stroke="#8866FF" stroke-width="2" />
+  <line x1="14" y1="44" x2="50" y2="44" stroke="#8866FF" stroke-width="2" />
+</svg> 

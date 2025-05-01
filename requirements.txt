@@ -1,0 +1,8 @@
+PyQt6
+PyQt6-Charts
+osrparse
+watchdog
+psutil
+construct
+pandas
+requests 
